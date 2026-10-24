@@ -13,7 +13,8 @@
     "lint": "eslint",
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
-    "test:watch": "vitest"
+    "test:watch": "vitest",
+    "eval": "tsx scripts/eval.ts"
   },
   "dependencies": {
     "geist": "^1.5.1",
@@ -30,6 +31,7 @@
     "eslint": "^9",
     "eslint-config-next": "16.4.3",
     "tailwindcss": "^4",
+    "tsx": "^4.23.15",
     "typescript": "^5",
     "vitest": "^4"
   }
