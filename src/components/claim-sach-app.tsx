@@ -10,6 +10,7 @@ import { buildLadder } from "@/model/ladder";
 import { evidencePackJson, evidencePackMarkdown } from "@/model/report";
 import { downloadText } from "./download";
 import { QuestionSheetDialog } from "./question-sheet";
+import { BuilderScreen } from "./screens/builder";
 import { CoverageTwinScreen } from "./screens/coverage-twin";
 import { InputReviewScreen } from "./screens/input-review";
 import { OverviewScreen } from "./screens/overview";
@@ -85,6 +86,9 @@ export function ClaimSachApp() {
       break;
     case "review":
       screen = <InputReviewScreen state={state} inputs={inputs} result={planned} dispatch={dispatch} />;
+      break;
+    case "builder":
+      screen = <BuilderScreen state={state} inputs={inputs} dispatch={dispatch} />;
       break;
   }
 

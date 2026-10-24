@@ -31,7 +31,7 @@ import {
 } from "@/fixtures/demo-policy";
 import { formatInr } from "@/lib/format-inr";
 
-export type Screen = "overview" | "twin" | "why" | "uncertainty" | "review";
+export type Screen = "overview" | "twin" | "why" | "uncertainty" | "review" | "builder";
 export type Side = "planned" | "comparison";
 export type VariantId = "standard" | "scheduleMissing" | "scheduleContradictory" | "noDeductionClause";
 export type PolicyId = "demo" | "arogya";
