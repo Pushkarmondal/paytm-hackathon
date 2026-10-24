@@ -7,6 +7,8 @@ import { Amount, RangeAmount } from "../amounts";
 import { IssuerBadge, ProvenanceBadge, StateBadge } from "../badges";
 import { issuerLabel, money } from "../format";
 import { RoomPicker } from "../room-picker";
+import { RoomLadder } from "../room-ladder";
+import type { Ladder } from "@/model/ladder";
 
 interface Props {
   inputs: CaseInputs;
@@ -14,7 +16,9 @@ interface Props {
   headline: Headline;
   planned: RoomChoice;
   policy: PolicyId;
+  ladder: Ladder;
   onSetPolicy: (policy: PolicyId) => void;
+  onDownloadPack: (kind: "md" | "json") => void;
   onSelectRoom: (side: Side, roomId: string) => void;
   onSetRate: (side: Side, rate: Money) => void;
   onOpenTwin: () => void;
@@ -39,7 +43,7 @@ function Row({ label, children }: { label: string; children: React.ReactNode }) 
   );
 }
 
-export function OverviewScreen({ inputs, result, headline, planned, policy, onSetPolicy, onSelectRoom, onSetRate, onOpenTwin, onOpenUncertainty }: Props) {
+export function OverviewScreen({ inputs, result, headline, planned, policy, ladder, onSetPolicy, onDownloadPack, onSelectRoom, onSetRate, onOpenTwin, onOpenUncertainty }: Props) {
   const { ruleset, schedule, estimate } = inputs;
   const overallBadge =
     headline.state === "cannotDetermine" ? "unknown" : headline.state === "reviewRequired" ? "reviewRequired" : headline.state;
@@ -100,8 +104,24 @@ export function OverviewScreen({ inputs, result, headline, planned, policy, onSe
           >
             What remains uncertain ({result.uncertainties.length})
           </button>
+          <button
+            type="button"
+            onClick={() => onDownloadPack("md")}
+            className="inline-flex h-10 items-center rounded-lg border border-white/30 px-4 text-sm font-medium text-white hover:bg-white/10 focus:outline-none focus-visible:ring-2 focus-visible:ring-white"
+          >
+            Evidence pack (.md)
+          </button>
+          <button
+            type="button"
+            onClick={() => onDownloadPack("json")}
+            className="inline-flex h-10 items-center rounded-lg border border-white/30 px-4 text-sm font-medium text-white hover:bg-white/10 focus:outline-none focus-visible:ring-2 focus-visible:ring-white"
+          >
+            Evidence pack (.json)
+          </button>
         </div>
       </section>
+
+      <RoomLadder ladder={ladder} plannedRoomId={planned.roomId} onPlanRoom={(id) => onSelectRoom("planned", id)} />
 
       <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
         <Card title="Policy">

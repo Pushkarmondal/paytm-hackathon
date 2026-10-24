@@ -8,6 +8,7 @@ interface Props {
   result: SimulationResult;
   groups: UncertaintyGroups;
   onGoToReview: () => void;
+  onOpenSheet: () => void;
 }
 
 const GROUPS: { key: keyof Pick<UncertaintyGroups, "user" | "hospital" | "insurer" | "none">; title: string; blurb: string; tone: string }[] = [
@@ -52,9 +53,10 @@ function Reason({ reason, result, onGoToReview }: { reason: UncertaintyReason; r
   );
 }
 
-export function UncertaintyScreen({ result, groups, onGoToReview }: Props) {
+export function UncertaintyScreen({ result, groups, onGoToReview, onOpenSheet }: Props) {
   return (
     <div className="flex flex-col gap-6">
+      <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
       <div>
         <p className="text-sm font-medium text-stone-500">What remains uncertain</p>
         <h1 className="mt-1 text-3xl font-semibold tracking-tight text-stone-900">
@@ -63,6 +65,14 @@ export function UncertaintyScreen({ result, groups, onGoToReview }: Props) {
         <p className="mt-2 max-w-2xl text-base leading-7 text-stone-600">
           Nothing here is folded into a total. Each entry says what is missing, what it affects, and who can settle it. Below them is the list of policy terms this version does not model at all.
         </p>
+      </div>
+      <button
+        type="button"
+        onClick={onOpenSheet}
+        className="inline-flex h-10 items-center self-start rounded-lg bg-stone-900 px-4 text-sm font-medium text-white hover:bg-stone-800 focus:outline-none focus-visible:ring-2 focus-visible:ring-stone-900 focus-visible:ring-offset-2"
+      >
+        Question sheet
+      </button>
       </div>
 
       {GROUPS.map((g) => {

@@ -1,11 +1,15 @@
 "use client";
 
-import { useCallback, useMemo, useReducer } from "react";
+import { useCallback, useMemo, useReducer, useState } from "react";
 import { compareScenarios } from "@/engine/compare";
 import { evaluate } from "@/engine/evaluate";
 import type { Money } from "@/engine/money";
 import type { Trace } from "@/engine/types";
 import { type Side, buildInputs, groupUncertainties, headlineFor, initialState, reduce, scenarioFor } from "@/model";
+import { buildLadder } from "@/model/ladder";
+import { evidencePackJson, evidencePackMarkdown } from "@/model/report";
+import { downloadText } from "./download";
+import { QuestionSheetDialog } from "./question-sheet";
 import { CoverageTwinScreen } from "./screens/coverage-twin";
 import { InputReviewScreen } from "./screens/input-review";
 import { OverviewScreen } from "./screens/overview";
@@ -22,6 +26,16 @@ export function ClaimSachApp() {
   const cmp = useMemo(() => compareScenarios(comparison, planned), [comparison, planned]);
   const headline = headlineFor(planned);
   const groups = groupUncertainties(planned);
+  const ladder = useMemo(() => buildLadder(inputs), [inputs]);
+  const [sheetOpen, setSheetOpen] = useState(false);
+  const downloadPack = useCallback(
+    (kind: "md" | "json") => {
+      const stamp = planned.scenario.roomId;
+      if (kind === "md") downloadText(`claim-sach-evidence-pack-${stamp}.md`, evidencePackMarkdown(planned, inputs), "text/markdown;charset=utf-8");
+      else downloadText(`claim-sach-evidence-pack-${stamp}.json`, evidencePackJson(planned, inputs), "application/json");
+    },
+    [planned, inputs],
+  );
 
   const openTrace = useCallback((title: string, trace: Trace) => dispatch({ type: "openTrace", title, trace }), []);
   const closeTrace = useCallback(() => dispatch({ type: "closeTrace" }), []);
@@ -38,7 +52,9 @@ export function ClaimSachApp() {
           headline={headline}
           planned={state.plannedRoom}
           policy={state.policy}
+          ladder={ladder}
           onSetPolicy={(p) => dispatch({ type: "setPolicy", policy: p })}
+          onDownloadPack={downloadPack}
           onSelectRoom={selectRoom}
           onSetRate={setRate}
           onOpenTwin={() => dispatch({ type: "setScreen", screen: "twin" })}
@@ -65,7 +81,7 @@ export function ClaimSachApp() {
       screen = <WhyThisChangedScreen a={comparison} b={planned} cmp={cmp} onOpenTrace={openTrace} onOpenTwin={() => dispatch({ type: "setScreen", screen: "twin" })} />;
       break;
     case "uncertainty":
-      screen = <UncertaintyScreen result={planned} groups={groups} onGoToReview={() => dispatch({ type: "setScreen", screen: "review" })} />;
+      screen = <UncertaintyScreen result={planned} groups={groups} onGoToReview={() => dispatch({ type: "setScreen", screen: "review" })} onOpenSheet={() => setSheetOpen(true)} />;
       break;
     case "review":
       screen = <InputReviewScreen state={state} inputs={inputs} result={planned} dispatch={dispatch} />;
@@ -84,6 +100,7 @@ export function ClaimSachApp() {
         {screen}
       </Shell>
       {state.openTrace ? <TraceDrawer title={state.openTrace.title} trace={state.openTrace.trace} onClose={closeTrace} /> : null}
+      {sheetOpen ? <QuestionSheetDialog result={planned} onClose={() => setSheetOpen(false)} /> : null}
     </>
   );
 }
