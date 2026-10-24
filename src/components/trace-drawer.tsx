@@ -2,6 +2,7 @@
 
 import { useEffect, useRef } from "react";
 import type { Trace } from "@/engine/types";
+import { explainTrace } from "@/explain";
 import { ProvenanceBadge, StateBadge } from "./badges";
 import { OutputAmount } from "./amounts";
 import { inputLabel, traceValue } from "./format";
@@ -61,6 +62,12 @@ export function TraceDrawer({ title, trace, onClose }: Props) {
               <OutputAmount output={trace.output} precise />
             </p>
             {trace.output.range ? <p className="mt-1 text-sm text-stone-600">{trace.output.range.basis}</p> : null}
+          </section>
+
+          <section>
+            <h3 className="text-xs font-medium uppercase tracking-wider text-stone-500">In plain words</h3>
+            <p className="mt-2 text-sm leading-6 text-stone-800">{explainTrace(trace)}</p>
+            <p className="mt-1 text-xs text-stone-400">Generated from the trace by the deterministic explainer, not by a language model.</p>
           </section>
 
           <section>
