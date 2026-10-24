@@ -5,8 +5,12 @@
 
 import { type Money } from "@/engine/money";
 import type {
+  BillItem,
   CaseInputs,
   Confirmations,
+  HospitalEstimate,
+  PolicyRuleset,
+  PolicySchedule,
   Range,
   ResultState,
   Scenario,
@@ -38,6 +42,20 @@ export interface OpenTrace {
   trace: Trace;
 }
 
+export type UploadTarget = "ruleset" | "schedule" | "estimate";
+
+export interface UploadRecord<T> {
+  fileName: string;
+  warnings: string[];
+  value: T;
+}
+
+export interface Uploads {
+  ruleset?: UploadRecord<PolicyRuleset>;
+  schedule?: UploadRecord<PolicySchedule>;
+  estimate?: (UploadRecord<HospitalEstimate> & { kind: "full" }) | (UploadRecord<BillItem[]> & { kind: "items" });
+}
+
 export interface AppState {
   screen: Screen;
   variant: VariantId;
@@ -45,6 +63,8 @@ export interface AppState {
   comparisonRoom: RoomChoice;
   confirmations: Confirmations;
   edits: { roomDays?: number; sumInsured?: Money };
+  uploads: Uploads;
+  uploadErrors: Partial<Record<UploadTarget, { fileName: string; message: string }>>;
   openTrace: OpenTrace | null;
 }
 
@@ -59,6 +79,12 @@ export type Action =
   | { type: "setSumInsured"; sumInsured: Money }
   | { type: "openTrace"; title: string; trace: Trace }
   | { type: "closeTrace" }
+  | { type: "uploadRuleset"; ruleset: PolicyRuleset; fileName: string; warnings: string[] }
+  | { type: "uploadSchedule"; schedule: PolicySchedule; fileName: string; warnings: string[] }
+  | { type: "uploadEstimate"; estimate: HospitalEstimate; fileName: string; warnings: string[] }
+  | { type: "uploadEstimateItems"; items: BillItem[]; fileName: string; warnings: string[] }
+  | { type: "uploadFailed"; target: UploadTarget; fileName: string; message: string }
+  | { type: "clearUploads" }
   | { type: "reset" };
 
 export interface DemoVariant {
@@ -82,8 +108,16 @@ export function initialState(): AppState {
     comparisonRoom: { roomId: ROOM_TWIN },
     confirmations: {},
     edits: {},
+    uploads: {},
+    uploadErrors: {},
     openTrace: null,
   };
+}
+
+function withoutError(state: AppState, target: UploadTarget): AppState["uploadErrors"] {
+  const errors = { ...state.uploadErrors };
+  delete errors[target];
+  return errors;
 }
 
 function roomKey(side: Side): "plannedRoom" | "comparisonRoom" {
@@ -120,6 +154,40 @@ export function reduce(state: AppState, action: Action): AppState {
       return { ...state, openTrace: { title: action.title, trace: action.trace } };
     case "closeTrace":
       return { ...state, openTrace: null };
+    case "uploadRuleset":
+      return {
+        ...state,
+        uploads: { ...state.uploads, ruleset: { fileName: action.fileName, warnings: action.warnings, value: action.ruleset } },
+        uploadErrors: withoutError(state, "ruleset"),
+      };
+    case "uploadSchedule":
+      return {
+        ...state,
+        uploads: { ...state.uploads, schedule: { fileName: action.fileName, warnings: action.warnings, value: action.schedule } },
+        uploadErrors: withoutError(state, "schedule"),
+      };
+    case "uploadEstimate": {
+      const options = action.estimate.roomOptions;
+      return {
+        ...state,
+        uploads: { ...state.uploads, estimate: { kind: "full", fileName: action.fileName, warnings: action.warnings, value: action.estimate } },
+        uploadErrors: withoutError(state, "estimate"),
+        comparisonRoom: { roomId: options[0].roomId },
+        plannedRoom: { roomId: options[Math.min(1, options.length - 1)].roomId },
+      };
+    }
+    case "uploadEstimateItems":
+      return {
+        ...state,
+        uploads: { ...state.uploads, estimate: { kind: "items", fileName: action.fileName, warnings: action.warnings, value: action.items } },
+        uploadErrors: withoutError(state, "estimate"),
+      };
+    case "uploadFailed":
+      return { ...state, uploadErrors: { ...state.uploadErrors, [action.target]: { fileName: action.fileName, message: action.message } } };
+    case "clearUploads": {
+      const fresh = initialState();
+      return { ...state, uploads: {}, uploadErrors: {}, plannedRoom: fresh.plannedRoom, comparisonRoom: fresh.comparisonRoom };
+    }
     case "reset":
       return initialState();
   }
@@ -141,6 +209,13 @@ export function buildInputs(state: AppState): CaseInputs {
       break;
     case "standard":
       break;
+  }
+  if (state.uploads.ruleset) ruleset = state.uploads.ruleset.value;
+  if (state.uploads.schedule) schedule = state.uploads.schedule.value;
+  if (state.uploads.estimate?.kind === "full") {
+    estimate = state.uploads.estimate.value;
+  } else if (state.uploads.estimate?.kind === "items") {
+    estimate = { ...estimate, estimateId: `${estimate.estimateId}-uploaded-items`, items: state.uploads.estimate.value, provenance: "upload" };
   }
   if (state.edits.roomDays !== undefined) {
     estimate = { ...estimate, roomDays: state.edits.roomDays, provenance: "userEntered" };
