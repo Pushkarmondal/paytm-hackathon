@@ -29,9 +29,9 @@ export function Shell({ screen, issuer, uncertaintyCount, onScreen, onReset, chi
   return (
     <div className="flex min-h-full flex-1 flex-col">
       <header className="sticky top-0 z-30 border-b border-stone-200 bg-white/90 backdrop-blur">
-        <div className="mx-auto flex h-14 max-w-6xl items-center justify-between gap-4 px-4 sm:px-6">
+        <div className="mx-auto flex min-h-14 max-w-6xl flex-wrap items-center justify-between gap-x-4 gap-y-2 px-4 py-2 sm:px-6">
           <div className="flex items-baseline gap-2">
-            <span className="text-base font-semibold tracking-tight text-stone-900">Claim Sach</span>
+            <span className="whitespace-nowrap text-base font-semibold tracking-tight text-stone-900">Claim Sach</span>
             <span className="hidden text-sm text-stone-400 sm:inline">/</span>
             <span className="hidden text-sm text-stone-600 sm:inline">Coverage Twin</span>
           </div>
@@ -49,7 +49,7 @@ export function Shell({ screen, issuer, uncertaintyCount, onScreen, onReset, chi
             <button
               type="button"
               onClick={onReset}
-              className="inline-flex h-8 items-center rounded-full px-3 text-xs font-medium text-stone-600 hover:bg-stone-100 focus:outline-none focus-visible:ring-2 focus-visible:ring-stone-900"
+              className="inline-flex h-8 items-center whitespace-nowrap rounded-full px-3 text-xs font-medium text-stone-600 hover:bg-stone-100 focus:outline-none focus-visible:ring-2 focus-visible:ring-stone-900"
             >
               Reset to demo
             </button>

@@ -44,7 +44,8 @@ export function IssuerBadge({ issuer }: { issuer: IssuerInfo }) {
         title={issuer.label}
       >
         <span aria-hidden className="h-1.5 w-1.5 rounded-full bg-violet-500" />
-        Synthetic demo policy
+        <span className="hidden sm:inline">Synthetic demo policy</span>
+        <span className="sm:hidden">Synthetic</span>
       </span>
     );
   }
