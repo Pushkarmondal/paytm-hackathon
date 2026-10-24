@@ -17,3 +17,22 @@ body {
   color: var(--foreground);
   font-family: var(--font-sans), system-ui, sans-serif;
 }
+
+@keyframes row-flash {
+  from {
+    background-color: rgb(254 243 199 / 0.9);
+  }
+  to {
+    background-color: transparent;
+  }
+}
+
+.row-flash {
+  animation: row-flash 900ms ease-out;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .row-flash {
+    animation: none;
+  }
+}
