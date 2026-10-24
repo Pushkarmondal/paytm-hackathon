@@ -19,7 +19,9 @@ import type {
   UncertaintyReason,
   UserClassification,
 } from "@/engine/types";
-import { arogyaInputs } from "@/fixtures/arogya-sanjeevani-nia";
+import { buildRulesetFromProposals, verifyProposals, type RuleProposal } from "@/ai";
+import { NIA_CLAUSES, arogyaInputs } from "@/fixtures/arogya-sanjeevani-nia";
+import { NIA_PROPOSALS } from "@/fixtures/arogya-sanjeevani-nia/llm-proposals";
 import {
   DEMO_RULESET_WITHOUT_DEDUCTION,
   DEMO_SCHEDULE_CONTRADICTORY,
@@ -79,7 +81,13 @@ export interface AppState {
   edits: { roomDays?: number; sumInsured?: Money };
   uploads: Uploads;
   uploadErrors: Partial<Record<UploadTarget, { fileName: string; message: string }>>;
+  builder: { decisions: Record<string, "confirmed" | "rejected"> };
   openTrace: OpenTrace | null;
+}
+
+/** The cached proposals available for a bundled policy. Only the real wording has any. */
+export function proposalsFor(policy: PolicyId): RuleProposal[] {
+  return policy === "arogya" ? NIA_PROPOSALS : [];
 }
 
 export type Action =
@@ -100,6 +108,9 @@ export type Action =
   | { type: "uploadEstimateItems"; items: BillItem[]; fileName: string; warnings: string[] }
   | { type: "uploadFailed"; target: UploadTarget; fileName: string; message: string }
   | { type: "clearUploads" }
+  | { type: "decideProposal"; proposalId: string; decision: "confirmed" | "rejected" }
+  | { type: "applyProposals" }
+  | { type: "clearDecisions" }
   | { type: "reset" };
 
 export interface DemoVariant {
@@ -126,6 +137,7 @@ export function initialState(): AppState {
     edits: {},
     uploads: {},
     uploadErrors: {},
+    builder: { decisions: {} },
     openTrace: null,
   };
 }
@@ -209,6 +221,22 @@ export function reduce(state: AppState, action: Action): AppState {
     case "clearUploads": {
       const fresh = initialState();
       return { ...state, uploads: {}, uploadErrors: {}, plannedRoom: fresh.plannedRoom, comparisonRoom: fresh.comparisonRoom };
+    }
+    case "decideProposal":
+      return { ...state, builder: { decisions: { ...state.builder.decisions, [action.proposalId]: action.decision } } };
+    case "clearDecisions":
+      return { ...state, builder: { decisions: {} } };
+    case "applyProposals": {
+      const confirmed = proposalsFor(state.policy).filter((p) => state.builder.decisions[p.id] === "confirmed");
+      const usable = verifyProposals(confirmed, NIA_CLAUSES).filter((v) => v.verification.quoteFound).map((v) => v.proposal);
+      if (usable.length === 0) return state;
+      const base = arogyaInputs().ruleset;
+      const ruleset = buildRulesetFromProposals({ metadata: base.metadata, clauses: NIA_CLAUSES, fixtureVersion: `builder-${usable.length}-confirmed` }, usable);
+      return {
+        ...state,
+        uploads: { ...state.uploads, ruleset: { fileName: `builder: ${usable.length} confirmed proposal${usable.length === 1 ? "" : "s"}`, warnings: [], value: ruleset } },
+        uploadErrors: withoutError(state, "ruleset"),
+      };
     }
     case "reset":
       return initialState();
