@@ -43,10 +43,32 @@ export const billCategorySchema = z.enum([
 ]);
 
 const limitBasisSchema = z.discriminatedUnion("kind", [
-  z.object({ kind: z.literal("percentOfSumInsuredPerDay"), percent: z.number().min(0).max(100) }),
+  z.object({ kind: z.literal("percentOfSumInsuredPerDay"), percent: z.number().min(0).max(100), capPerDay: nonNegativeMoney.optional() }),
   z.object({ kind: z.literal("fixedPerDay"), amount: nonNegativeMoney }),
   z.object({ kind: z.literal("scheduleDefined") }),
 ]);
+
+const uncertaintyCodeSchema = z.enum([
+  "SCHEDULE_MISSING",
+  "SCHEDULE_CONTRADICTS_WORDING",
+  "DIFFERENTIAL_BILLING_NOT_ESTABLISHED",
+  "ITEM_NOT_CLASSIFIED",
+  "WORDING_SILENT_ON_ROOM_UNAVAILABILITY",
+  "RULE_ABSENT",
+  "LIMIT_RULE_ABSENT",
+  "ICU_RATE_NOT_STATED",
+  "RATIO_AMBIGUOUS_ROOM_AND_ICU",
+  "WORDING_PREDATES_2020_NORMS",
+  "POLICY_CAVEAT",
+]);
+
+const caveatSchema = z.object({
+  code: uncertaintyCodeSchema,
+  text: z.string().min(1),
+  affectedCategories: z.array(billCategorySchema).min(1),
+  resolvableBy: z.enum(["user", "hospital", "insurer", "none"]),
+  whatWouldResolveIt: z.string().min(1),
+});
 
 const limitRuleSchema = z.object({
   ruleId: z.string().min(1),
@@ -71,6 +93,17 @@ export const rulesetSchema = z.object({
     wordingVersion: z.string().min(1),
     effectiveDate: z.string().min(1),
     sourceDocument: z.object({ documentId: z.string().min(1), title: z.string().min(1), url: z.url().optional() }),
+    verification: z
+      .object({
+        url: z.url(),
+        sha256: z.string().regex(/^[0-9a-f]{64}$/),
+        fetchedOn: z.string().min(1),
+        pages: z.number().int().min(1),
+        extractedWith: z.string().min(1),
+        encodedClauses: z.array(z.string().min(1)),
+        note: z.string().min(1),
+      })
+      .optional(),
   }),
   clauses: z.array(clauseSchema).min(1),
   rules: z.object({
@@ -81,6 +114,7 @@ export const rulesetSchema = z.object({
         ruleId: z.string().min(1),
         affectedClass: z.literal("associatedMedicalExpenses"),
         conditions: z.array(conditionSchema),
+        triggers: z.array(z.enum(["room", "icu"])).min(1).optional(),
         source: sourceRefSchema,
       })
       .optional(),
@@ -89,12 +123,16 @@ export const rulesetSchema = z.object({
         ruleId: z.string().min(1),
         included: z.array(billCategorySchema),
         excluded: z.array(billCategorySchema),
+        notes: z.partialRecord(billCategorySchema, z.string().min(1)).optional(),
         source: sourceRefSchema,
       })
       .optional(),
     sumInsuredCap: z.object({ ruleId: z.string().min(1), source: sourceRefSchema }).optional(),
     roomUnavailabilityClause: z.object({ ruleId: z.string().min(1), source: sourceRefSchema }).optional(),
+    copay: z.object({ ruleId: z.string().min(1), percent: z.number().min(0).max(100), source: sourceRefSchema }).optional(),
   }),
+  caveats: z.array(caveatSchema).optional(),
+  notices: z.array(caveatSchema).optional(),
 });
 
 const statedLimitSchema = z.object({ amountPerDay: nonNegativeMoney, source: sourceRefSchema });

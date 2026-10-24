@@ -2,13 +2,17 @@ import { formatInr } from "@/lib/format-inr";
 import { classifyItems } from "./classify";
 import { evaluateDeduction } from "./deduction";
 import { computeExcess, resolveLimit, type ResolvedLimit } from "./limits";
-import { type Money, ZERO, add, sum, times } from "./money";
+import { type Money, ZERO, add, mulRatio, percentToRatio, sub, sum, times } from "./money";
 import type {
   CaseInputs,
   ClassifiedItem,
+  CopayResult,
   ExcessResult,
+  ItemResult,
   OverallState,
+  PolicyRuleset,
   Provenance,
+  Range,
   Scenario,
   SimulationResult,
   SimulationTotals,
@@ -86,10 +90,76 @@ function icuExcess(
 function dedupe(reasons: UncertaintyReason[]): UncertaintyReason[] {
   const seen = new Set<string>();
   return reasons.filter((r) => {
-    if (seen.has(r.code)) return false;
-    seen.add(r.code);
+    const key = `${r.code}:${r.affectedItemIds.join(",")}`;
+    if (seen.has(key)) return false;
+    seen.add(key);
     return true;
   });
+}
+
+function noticesFor(ruleset: PolicyRuleset, items: ClassifiedItem[]): UncertaintyReason[] {
+  return (ruleset.notices ?? []).flatMap((n) => {
+    const affected = items.filter((i) => n.affectedCategories.includes(i.category)).map((i) => i.itemId);
+    return affected.length ? [{ code: n.code, text: n.text, affectedItemIds: affected, resolvableBy: n.resolvableBy, whatWouldResolveIt: n.whatWouldResolveIt }] : [];
+  });
+}
+
+interface CopayArgs {
+  ruleset: PolicyRuleset;
+  limitsKnown: boolean;
+  scenarioTotal: Money;
+  roomExcess: ExcessResult;
+  icuExcess: ExcessResult;
+  items: ItemResult[];
+  reasons: UncertaintyReason[];
+  rulesetProvenance: Provenance;
+}
+
+/** Co-payment on the admissible amount: a single figure when everything is settled, otherwise a range with defensible bounds. */
+function evaluateCopay(a: CopayArgs): CopayResult {
+  const rule = a.ruleset.rules.copay;
+  if (!rule) return { state: "excluded", value: ZERO, trace: null };
+  if (!a.limitsKnown || a.roomExcess.value === null || a.icuExcess.value === null) return { state: "unknown", value: null, trace: null };
+  const calculated = sum(a.items.filter((i) => i.deduction.state === "calculated" && i.deduction.value !== null).map((i) => i.deduction.value as Money));
+  const conditional = a.items.filter((i) => i.deduction.state === "conditional" && i.deduction.range);
+  const condLow = sum(conditional.map((i) => i.deduction.range!.low));
+  const condHigh = sum(conditional.map((i) => i.deduction.range!.high));
+  const unknownAmount = sum(a.items.filter((i) => i.deduction.state === "unknown").map((i) => i.amount));
+  const settled = sum([a.roomExcess.value, a.icuExcess.value, calculated]);
+  const baseLow = sub(sub(sub(a.scenarioTotal, settled), condHigh), unknownAmount);
+  const baseHigh = sub(sub(a.scenarioTotal, settled), condLow);
+  const pct = percentToRatio(rule.percent);
+  const low = mulRatio(baseLow, pct);
+  const high = mulRatio(baseHigh, pct);
+  const assumptions = a.reasons.filter((r) => ["ITEM_NOT_CLASSIFIED", "DIFFERENTIAL_BILLING_NOT_ESTABLISHED", "RATIO_AMBIGUOUS_ROOM_AND_ICU", "WORDING_PREDATES_2020_NORMS", "POLICY_CAVEAT"].includes(r.code) && (r.amountAtStake !== undefined || r.code === "ITEM_NOT_CLASSIFIED"));
+  const common = { ruleId: rule.ruleId, ruleName: "Co-payment", source: rule.source, operation: "copay.percentOfAdmissible" as const };
+  if (baseLow === baseHigh) {
+    const trace: Trace = {
+      ...common,
+      inputs: [
+        { name: "copayPercent", value: { kind: "percent", percent: rule.percent }, provenance: a.rulesetProvenance },
+        { name: "admissibleBase", value: { kind: "money", paise: baseHigh }, provenance: a.rulesetProvenance },
+      ],
+      formula: `co-pay = ${rule.percent}% × ${formatInr(baseHigh)} (scenario total less the deductions above) = ${formatInr(high)}`,
+      output: { state: "calculated", value: high },
+      assumptions: [],
+    };
+    return { state: "calculated", value: high, trace };
+  }
+  const basis = "Co-payment on the admissible amount: low = unclassified items not admissible and every open deduction at its maximum, high = unclassified items admissible and every open deduction at its minimum";
+  const range: Range = { low, high, basis };
+  const trace: Trace = {
+    ...common,
+    inputs: [
+      { name: "copayPercent", value: { kind: "percent", percent: rule.percent }, provenance: a.rulesetProvenance },
+      { name: "admissibleBaseLow", value: { kind: "money", paise: baseLow }, provenance: a.rulesetProvenance },
+      { name: "admissibleBaseHigh", value: { kind: "money", paise: baseHigh }, provenance: a.rulesetProvenance },
+    ],
+    formula: `co-pay = ${rule.percent}% × admissible amount, between ${formatInr(baseLow)} and ${formatInr(baseHigh)} = ${formatInr(low)} to ${formatInr(high)}`,
+    output: { state: "conditional", value: null, range },
+    assumptions: assumptions.length ? assumptions : [{ code: "ITEM_NOT_CLASSIFIED", text: "The admissible amount depends on open items.", affectedItemIds: [], resolvableBy: "user", whatWouldResolveIt: "Resolve the open items on Input review." }],
+  };
+  return { state: "conditional", value: null, range, trace };
 }
 
 /** Runs one scenario through the policy's rules. Pure and deterministic. */
@@ -122,6 +192,7 @@ export function evaluate(inputs: CaseInputs, scenario: Scenario): SimulationResu
   const deduction = evaluateDeduction({
     ruleset,
     roomLimit,
+    icuLimit,
     ratePerDay,
     rateProvenance,
     items: classified,
@@ -131,6 +202,18 @@ export function evaluate(inputs: CaseInputs, scenario: Scenario): SimulationResu
     rulesetProvenance,
   });
   uncertainties.push(...deduction.uncertainties);
+  uncertainties.push(...noticesFor(ruleset, classified));
+
+  const copay = evaluateCopay({
+    ruleset,
+    limitsKnown: roomLimit.state === "calculated",
+    scenarioTotal,
+    roomExcess,
+    icuExcess: icuExcessResult,
+    items: deduction.items,
+    reasons: uncertainties,
+    rulesetProvenance,
+  });
 
   const calculatedItemDeductions = sum(
     deduction.items.filter((i) => i.deduction.state === "calculated" && i.deduction.value !== null).map((i) => i.deduction.value as Money),
@@ -139,14 +222,21 @@ export function evaluate(inputs: CaseInputs, scenario: Scenario): SimulationResu
     roomExcess.state === "calculated" && roomExcess.value !== null ? roomExcess.value : ZERO,
     icuExcessResult.state === "calculated" && icuExcessResult.value !== null ? icuExcessResult.value : ZERO,
     calculatedItemDeductions,
+    copay.state === "calculated" && copay.value !== null ? copay.value : ZERO,
   ]);
+  const ranges: Range[] = [];
+  if (deduction.conditionalTotal) ranges.push(deduction.conditionalTotal);
+  if (copay.state === "conditional" && copay.range) ranges.push(copay.range);
+  const conditionalDeductions: Range | null = ranges.length
+    ? { low: sum(ranges.map((r) => r.low)), high: sum(ranges.map((r) => r.high)), basis: ranges.map((r) => r.basis).join(" | ") }
+    : null;
   const unknownItems = deduction.items.filter((i) => i.classification === "unknown");
   const totals: SimulationTotals = {
     roomRent,
     nonRoomItems,
     scenarioTotal,
     calculatedDeductions,
-    conditionalDeductions: deduction.conditionalTotal,
+    conditionalDeductions,
     unclassifiedAmount: sum(unknownItems.map((i) => i.amount)),
     unclassifiedCount: unknownItems.length,
   };
@@ -154,7 +244,7 @@ export function evaluate(inputs: CaseInputs, scenario: Scenario): SimulationResu
   let overallState: OverallState;
   if (roomLimit.state === "reviewRequired") overallState = "reviewRequired";
   else if (roomLimit.state !== "calculated") overallState = "cannotDetermine";
-  else if (deduction.rule.applicability === "conditional") overallState = "conditional";
+  else if (conditionalDeductions !== null) overallState = "conditional";
   else overallState = "calculated";
 
   return {
@@ -180,6 +270,7 @@ export function evaluate(inputs: CaseInputs, scenario: Scenario): SimulationResu
     icuLimit: { state: icuLimit.state, eligiblePerDay: icuLimit.eligiblePerDay, trace: icuLimit.trace },
     icuExcess: icuExcessResult,
     deductionRule: deduction.rule,
+    copay,
     items: deduction.items,
     totals,
     uncertainties: dedupe(uncertainties),

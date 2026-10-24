@@ -35,6 +35,7 @@ export interface PolicyMetadata {
   wordingVersion: string;
   effectiveDate: string;
   sourceDocument: { documentId: string; title: string; url?: string };
+  verification?: VerificationRecord;
 }
 
 export interface Clause {
@@ -61,7 +62,7 @@ export type BillCategory =
   | "other";
 
 export type LimitBasis =
-  | { kind: "percentOfSumInsuredPerDay"; percent: number }
+  | { kind: "percentOfSumInsuredPerDay"; percent: number; capPerDay?: Money }
   | { kind: "fixedPerDay"; amount: Money }
   | { kind: "scheduleDefined" };
 
@@ -82,7 +83,24 @@ export interface ProportionateDeductionRule {
   ruleId: string;
   affectedClass: "associatedMedicalExpenses";
   conditions: RuleCondition[];
+  /** Which per-day limits, when exceeded, trigger the proportion. Default: ["room"]. */
+  triggers?: ("room" | "icu")[];
   source: SourceRef;
+}
+
+export interface CopayRule {
+  ruleId: string;
+  percent: number;
+  source: SourceRef;
+}
+
+/** A policy-specific fact the fixture author wants surfaced, such as a wording that predates a regulatory norm. */
+export interface PolicyCaveat {
+  code: UncertaintyCode;
+  text: string;
+  affectedCategories: BillCategory[];
+  resolvableBy: "user" | "hospital" | "insurer" | "none";
+  whatWouldResolveIt: string;
 }
 
 /** The policy's own definition of which categories the deduction touches. */
@@ -90,7 +108,20 @@ export interface ItemClassRule {
   ruleId: string;
   included: BillCategory[];
   excluded: BillCategory[];
+  /** Why a category is deliberately left unclassified under this wording. */
+  notes?: Partial<Record<BillCategory, string>>;
   source: SourceRef;
+}
+
+/** How a real wording was obtained and checked. Shown to the user; never implied. */
+export interface VerificationRecord {
+  url: string;
+  sha256: string;
+  fetchedOn: string;
+  pages: number;
+  extractedWith: string;
+  encodedClauses: string[];
+  note: string;
 }
 
 export interface PolicyRuleset {
@@ -106,7 +137,12 @@ export interface PolicyRuleset {
     sumInsuredCap?: { ruleId: string; source: SourceRef };
     /** Present only when the wording says what happens if the eligible room category is unavailable. */
     roomUnavailabilityClause?: { ruleId: string; source: SourceRef };
+    copay?: CopayRule;
   };
+  /** Caveats make the affected items' deductions conditional on insurer confirmation. */
+  caveats?: PolicyCaveat[];
+  /** Notices are surfaced as uncertainties without changing any amount. */
+  notices?: PolicyCaveat[];
 }
 
 export interface ScheduleStatedLimit {
@@ -200,7 +236,10 @@ export type UncertaintyCode =
   | "WORDING_SILENT_ON_ROOM_UNAVAILABILITY"
   | "RULE_ABSENT"
   | "LIMIT_RULE_ABSENT"
-  | "ICU_RATE_NOT_STATED";
+  | "ICU_RATE_NOT_STATED"
+  | "RATIO_AMBIGUOUS_ROOM_AND_ICU"
+  | "WORDING_PREDATES_2020_NORMS"
+  | "POLICY_CAVEAT";
 
 export interface UncertaintyReason {
   code: UncertaintyCode;
@@ -286,6 +325,15 @@ export type DeductionApplicability =
 export interface DeductionRuleResult {
   applicability: DeductionApplicability;
   ratio: Ratio | null;
+  /** Which limit was exceeded and drove the proportion. */
+  trigger: "room" | "icu" | "both" | null;
+  trace: Trace | null;
+}
+
+export interface CopayResult {
+  state: ResultState;
+  value: Money | null;
+  range?: Range;
   trace: Trace | null;
 }
 
@@ -319,6 +367,7 @@ export interface SimulationResult {
   icuLimit: LimitResult;
   icuExcess: ExcessResult;
   deductionRule: DeductionRuleResult;
+  copay: CopayResult;
   items: ItemResult[];
   totals: SimulationTotals;
   uncertainties: UncertaintyReason[];
