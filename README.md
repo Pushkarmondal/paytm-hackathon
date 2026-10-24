@@ -27,9 +27,16 @@ npm run build && npm start
 
 `docs/DEMO_SCRIPT.md` has the three-minute judge-facing sequence of clicks, the fallbacks and the likely questions. **Reset to demo** in the header restores the seeded state at any time.
 
-## The policy in the box is synthetic
+## Two wordings in the box
 
-"Claim Sach Demo Health Policy, wording v1.0 (synthetic)" is not issued by any insurer. It is labelled as such in the header, on the overview and in every trace. Its clause structure follows what IRDAI's 2020 norms on proportionate deductions required of real policies (superseded in May 2024; see `docs/PRD.md` Appendix B). A real wording is loaded as a Claim Sach ruleset through **Input review**; every rule must quote its clause exactly or the file is refused.
+- **Claim Sach Demo Health Policy, wording v1.0 (synthetic).** Not issued by any insurer; labelled as such in the header, on the overview and in every trace. Its clause structure follows what IRDAI's 2020 norms on proportionate deductions required of real policies (superseded in May 2024; see `docs/PRD.md` Appendix B).
+- **Arogya Sanjeevani Policy, The New India Assurance Co. Ltd. (UIN NIAHLIP20165V011920).** A real wording, downloaded from irdai.gov.in on 24 October 2026, its text extracted and ten clauses quoted verbatim with page numbers and a SHA-256 record of the PDF. **Partially encoded**: only the room, ICU, proportionate-payment, co-payment and sum-insured clauses are modelled; everything else in the 31-page wording is not. The schedule used with it is synthetic. The engine shows, as a range requiring insurer confirmation, that this 2019-20 wording reduces implants and diagnostics although IRDAI's 2020 norms later barred that.
+
+Switch between them on the Scenario overview or Input review. Any other wording is loaded as a Claim Sach ruleset through Input review, or built from proposals in the **Ruleset builder**; every rule must quote its clause exactly or it is refused.
+
+## The AI, in its place
+
+The **Ruleset builder** is where a model is allowed to help: it proposes candidate rules from a public policy wording, each with a quote; the engine checks every quote verbatim against the clause; a person confirms or rejects each proposal; confirmed proposals become the active ruleset with the full clause as evidence. In this build the proposals are **cached** (written by the build session offline, provenance stated on screen) and the live adapter route is implemented but off and not exercised. The model never calculates and never receives a schedule, a bill or a name. "Find the clause" on the same screen is keyword retrieval, no model.
 
 ## Checks
 
@@ -53,18 +60,21 @@ npm run eval
 | `docs/EVALUATION.md`, `docs/EVALUATION-RESULTS.md` | test coverage, benchmark method, actual results, limitations |
 | `docs/PITCH.md` | the pitch outline mapped to the seven deck sections |
 | `docs/COMPETITORS.md` | the bounded competitor review behind the differentiation hypothesis |
+| `docs/BUSINESS-CASE.md` | verified facts, hypotheses with tests, unit economics, the outreach note |
+| `docs/deck/claim-sach-deck.pptx` | the pitch deck for devSemble |
 
 ## Layout
 
 ```
-src/engine        pure TypeScript rules engine: money, classify, limits, deduction, evaluate, compare, trace
-src/fixtures      the synthetic demo policy, schedule variants, estimate, scenarios
+src/engine        pure TypeScript rules engine: money, classify, limits, deduction (room or ICU triggered, co-pay, caveats), evaluate, compare, trace
+src/fixtures      demo-policy (synthetic) and arogya-sanjeevani-nia (real, verbatim, with verification record and cached proposals)
 src/ingestion     JSON and CSV adapters (Zod), evidence cross-check, upload limits
 src/retrieval     tf-idf clause retrieval (deterministic)
 src/extraction    regex rule extraction: candidates for human review
-src/explain       deterministic explainer; optional LLM adapter interface (stub only)
-src/model         app state, reducer, engine inputs, headline, uncertainty groups
-src/components    the five screens, Coverage Twin, trace drawer, upload section
+src/ai            proposal verification, ruleset assembly, prompt and parser; the live route under src/app/api is off by default
+src/explain       deterministic explainer; optional LLM explanation adapter (stub only)
+src/model         app state, reducer, engine inputs, headline, uncertainty groups, room ladder, question sheet, evidence pack
+src/components    the six screens, Coverage Twin, trace drawer, upload section, ruleset builder
 src/lib           Indian-rupee formatting
 tests/unit        Vitest unit tests
 tests/eval        evaluation fixtures; scripts/eval.ts is the harness
@@ -76,4 +86,4 @@ Everything runs in the browser. Uploads are read with the File API and never sen
 
 ## Not in this version
 
-PDF ingestion; co-payment, sub-limits other than room and ICU, exclusions, waiting periods, non-payable items, pre- and post-hospitalisation (listed as not modelled in the app); any insurer or Paytm integration; persistence.
+PDF ingestion; sub-limits other than room and ICU, exclusions, waiting periods, non-payable items, pre- and post-hospitalisation (listed as not modelled in the app); a live model call (the route exists, off by default, not exercised); any insurer or Paytm integration; persistence.

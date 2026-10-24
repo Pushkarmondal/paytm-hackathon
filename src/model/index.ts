@@ -19,6 +19,9 @@ import type {
   UncertaintyReason,
   UserClassification,
 } from "@/engine/types";
+import { buildRulesetFromProposals, verifyProposals, type RuleProposal } from "@/ai";
+import { NIA_CLAUSES, arogyaInputs } from "@/fixtures/arogya-sanjeevani-nia";
+import { NIA_PROPOSALS } from "@/fixtures/arogya-sanjeevani-nia/llm-proposals";
 import {
   DEMO_RULESET_WITHOUT_DEDUCTION,
   DEMO_SCHEDULE_CONTRADICTORY,
@@ -28,9 +31,21 @@ import {
 } from "@/fixtures/demo-policy";
 import { formatInr } from "@/lib/format-inr";
 
-export type Screen = "overview" | "twin" | "why" | "uncertainty" | "review";
+export type Screen = "overview" | "twin" | "why" | "uncertainty" | "review" | "builder";
 export type Side = "planned" | "comparison";
 export type VariantId = "standard" | "scheduleMissing" | "scheduleContradictory" | "noDeductionClause";
+export type PolicyId = "demo" | "arogya";
+
+export interface PolicyOption {
+  id: PolicyId;
+  label: string;
+  description: string;
+}
+
+export const POLICY_OPTIONS: readonly PolicyOption[] = [
+  { id: "demo", label: "Claim Sach Demo Health Policy (synthetic)", description: "Invented wording with a defined Associated Medical Expenses class and a differential-billing condition. Not issued by any insurer." },
+  { id: "arogya", label: "Arogya Sanjeevani, The New India Assurance (IRDAI-hosted, partially encoded)", description: "A real wording, UIN NIAHLIP20165V011920, downloaded from irdai.gov.in and quoted verbatim. Only the room, ICU, proportionate-payment and co-payment clauses are encoded. The schedule is synthetic." },
+];
 
 export interface RoomChoice {
   roomId: string;
@@ -58,6 +73,7 @@ export interface Uploads {
 
 export interface AppState {
   screen: Screen;
+  policy: PolicyId;
   variant: VariantId;
   plannedRoom: RoomChoice;
   comparisonRoom: RoomChoice;
@@ -65,7 +81,13 @@ export interface AppState {
   edits: { roomDays?: number; sumInsured?: Money };
   uploads: Uploads;
   uploadErrors: Partial<Record<UploadTarget, { fileName: string; message: string }>>;
+  builder: { decisions: Record<string, "confirmed" | "rejected"> };
   openTrace: OpenTrace | null;
+}
+
+/** The cached proposals available for a bundled policy. Only the real wording has any. */
+export function proposalsFor(policy: PolicyId): RuleProposal[] {
+  return policy === "arogya" ? NIA_PROPOSALS : [];
 }
 
 export type Action =
@@ -75,6 +97,7 @@ export type Action =
   | { type: "confirmDifferentialBilling"; value: boolean | null }
   | { type: "classifyItem"; itemId: string; classification: UserClassification | null }
   | { type: "setVariant"; variant: VariantId }
+  | { type: "setPolicy"; policy: PolicyId }
   | { type: "setRoomDays"; days: number }
   | { type: "setSumInsured"; sumInsured: Money }
   | { type: "openTrace"; title: string; trace: Trace }
@@ -85,6 +108,9 @@ export type Action =
   | { type: "uploadEstimateItems"; items: BillItem[]; fileName: string; warnings: string[] }
   | { type: "uploadFailed"; target: UploadTarget; fileName: string; message: string }
   | { type: "clearUploads" }
+  | { type: "decideProposal"; proposalId: string; decision: "confirmed" | "rejected" }
+  | { type: "applyProposals" }
+  | { type: "clearDecisions" }
   | { type: "reset" };
 
 export interface DemoVariant {
@@ -103,6 +129,7 @@ export const DEMO_VARIANTS: readonly DemoVariant[] = [
 export function initialState(): AppState {
   return {
     screen: "overview",
+    policy: "demo",
     variant: "standard",
     plannedRoom: { roomId: ROOM_SINGLE },
     comparisonRoom: { roomId: ROOM_TWIN },
@@ -110,6 +137,7 @@ export function initialState(): AppState {
     edits: {},
     uploads: {},
     uploadErrors: {},
+    builder: { decisions: {} },
     openTrace: null,
   };
 }
@@ -146,6 +174,12 @@ export function reduce(state: AppState, action: Action): AppState {
     }
     case "setVariant":
       return { ...state, variant: action.variant };
+    case "setPolicy": {
+      if (action.policy === state.policy) return state;
+      const confirmations = { ...state.confirmations };
+      delete confirmations.hospitalFollowsDifferentialBilling;
+      return { ...state, policy: action.policy, confirmations };
+    }
     case "setRoomDays":
       return { ...state, edits: { ...state.edits, roomDays: action.days } };
     case "setSumInsured":
@@ -188,6 +222,22 @@ export function reduce(state: AppState, action: Action): AppState {
       const fresh = initialState();
       return { ...state, uploads: {}, uploadErrors: {}, plannedRoom: fresh.plannedRoom, comparisonRoom: fresh.comparisonRoom };
     }
+    case "decideProposal":
+      return { ...state, builder: { decisions: { ...state.builder.decisions, [action.proposalId]: action.decision } } };
+    case "clearDecisions":
+      return { ...state, builder: { decisions: {} } };
+    case "applyProposals": {
+      const confirmed = proposalsFor(state.policy).filter((p) => state.builder.decisions[p.id] === "confirmed");
+      const usable = verifyProposals(confirmed, NIA_CLAUSES).filter((v) => v.verification.quoteFound).map((v) => v.proposal);
+      if (usable.length === 0) return state;
+      const base = arogyaInputs().ruleset;
+      const ruleset = buildRulesetFromProposals({ metadata: base.metadata, clauses: NIA_CLAUSES, fixtureVersion: `builder-${usable.length}-confirmed` }, usable);
+      return {
+        ...state,
+        uploads: { ...state.uploads, ruleset: { fileName: `builder: ${usable.length} confirmed proposal${usable.length === 1 ? "" : "s"}`, warnings: [], value: ruleset } },
+        uploadErrors: withoutError(state, "ruleset"),
+      };
+    }
     case "reset":
       return initialState();
   }
@@ -195,9 +245,9 @@ export function reduce(state: AppState, action: Action): AppState {
 
 /** Engine inputs for the current variant, edits and confirmations. */
 export function buildInputs(state: AppState): CaseInputs {
-  const base = demoInputs();
+  const base = state.policy === "arogya" ? arogyaInputs() : demoInputs();
   let { ruleset, schedule, estimate } = base;
-  switch (state.variant) {
+  switch (state.policy === "demo" ? state.variant : "standard") {
     case "scheduleMissing":
       schedule = null;
       break;

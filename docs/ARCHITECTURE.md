@@ -150,3 +150,25 @@ Every result embeds `engineVersion` (from `src/engine/types.ts`) and `fixtureVer
 - One wording in the box, and it is synthetic. Real wordings must be encoded as rulesets and verified by a person.
 - The engine models the room rent limit, the ICU limit, the proportionate deduction and the policy's item classification. Co-payment, other sub-limits, exclusions, waiting periods, non-payable items and pre/post-hospitalisation are listed as not modelled, not estimated.
 - No PDF ingestion. No persistence. No multi-policy coordination.
+
+## 13. Additions of 24 October 2026 (evening)
+
+### 13.1 Engine extensions
+
+- **Capped percent limits** (`percentOfSumInsuredPerDay` with `capPerDay`): the eligible rate is the lower of the percentage and the cap; the trace shows both.
+- **Room-or-ICU triggered proportion** (`triggers` on the deduction rule): the proportion can be driven by the ICU rate exceeding its limit. When room and ICU both exceed in the same ratio, that ratio applies; in different ratios the engine refuses to choose and gives a range (`RATIO_AMBIGUOUS_ROOM_AND_ICU`, requires insurer confirmation).
+- **Co-payment** (`copay` rule): a percentage of the admissible amount. A single figure only when every other amount is settled; otherwise a range whose low bound treats unclassified items as not admissible and every open deduction at its maximum, and whose high bound does the reverse.
+- **Caveats and notices** on a ruleset: a caveat makes the affected items' deductions conditional on insurer confirmation (used for the 2019-20 wording that predates IRDAI's 2020 norms); a notice is an uncertainty with no amount (used for nursing sitting inside the room-rent limit).
+- `itemClasses.notes` lets a fixture say why a category is deliberately left unclassified; the reason reaches the uncertainty panel.
+
+### 13.2 The real wording
+
+`src/fixtures/arogya-sanjeevani-nia`: ten clauses of The New India Assurance Co. Ltd.'s Arogya Sanjeevani wording (UIN NIAHLIP20165V011920), extracted with pdftotext from the PDF hosted on irdai.gov.in, line breaks joined and repeated spaces collapsed, nothing else changed. `VerificationRecord` in the metadata carries the URL, SHA-256, fetch date, page count, extraction method, the list of encoded clauses and the partial-encoding note; the UI shows it on Input review and in the evidence pack. The schedule used with it is synthetic and says so.
+
+### 13.3 The AI seam (`src/ai`)
+
+`RuleProposal` is a candidate rule with a clause id and a quoted excerpt. `verifyProposals` checks the excerpt verbatim (whitespace-normalised) against the clause text. `buildRulesetFromProposals` turns confirmed, verified proposals into a `PolicyRuleset` whose every `SourceRef` quotes the full clause, so the engine's traces and the ingestion evidence check both pass; it throws on an unverified proposal. `buildPrompt` carries clause text only; `parseProposalsResponse` validates the model's reply with Zod. The route `POST /api/propose-rules` returns 503 unless `CLAIM_SACH_LLM_PROVIDER=anthropic` and `ANTHROPIC_API_KEY` are set; it is implemented but was not exercised in this build. The demo uses cached proposals (`llm-proposals.ts`) whose provenance is printed on screen. `proposalFieldChecks` compares a proposal with the human-reviewed ruleset, for the harness and the builder's agreement badges.
+
+### 13.4 Screen-model additions
+
+`buildLadder` evaluates every room option and marks the highest room within the room-rent limit. `questionSheet` turns the uncertainties into questions for the hospital, the insurer and the user, each with its clause and the rupees at stake; `questionSheetText` renders them for copy, print or save. `evidencePackMarkdown` and `evidencePackJson` export the full result with every trace, the verification record and the disclaimer. The reducer gained `setPolicy`, `decideProposal`, `applyProposals` and `clearDecisions`; applying proposals installs the built ruleset as an upload, so every screen recomputes on what the user confirmed.

@@ -200,6 +200,23 @@ export function CoverageTwinScreen({ inputs, a, b, cmp, choices, onSelectRoom, o
           <tfoot className="border-t-2 border-stone-200 bg-stone-50 text-sm">
             <FootRow label="Room rent" a={<Amount paise={a.totals.roomRent} />} b={<Amount paise={b.totals.roomRent} />} delta={signedMoney(cmp.totals.roomRent.delta)} />
             <FootRow label="Scenario total" note="non-room items plus room rent" a={<Amount paise={a.totals.scenarioTotal} />} b={<Amount paise={b.totals.scenarioTotal} />} delta={signedMoney(cmp.totals.scenarioTotal.delta)} />
+            {a.copay.state !== "excluded" || b.copay.state !== "excluded" ? (
+              <tr className="border-t border-stone-200">
+                <th scope="row" colSpan={2} className="px-3 py-2 text-left font-normal text-stone-700">
+                  Co-payment
+                  <span className="ml-2 text-xs text-stone-400">on the admissible amount</span>
+                </th>
+                <td className="px-1 py-1">
+                  <OutputCell output={{ state: a.copay.state, value: a.copay.value, range: a.copay.range }} trace={a.copay.trace} title={`Co-payment, ${a.scenario.roomLabel}`} onOpenTrace={onOpenTrace} />
+                </td>
+                <td className="px-1 py-1">
+                  <OutputCell output={{ state: b.copay.state, value: b.copay.value, range: b.copay.range }} trace={b.copay.trace} title={`Co-payment, ${b.scenario.roomLabel}`} onOpenTrace={onOpenTrace} />
+                </td>
+                <td className="px-3 py-2 text-right tabular-nums text-stone-400">
+                  {a.copay.value !== null && b.copay.value !== null ? signedMoney(b.copay.value - a.copay.value) : "—"}
+                </td>
+              </tr>
+            ) : null}
             <FootRow label="Calculated deductions" a={<Amount paise={a.totals.calculatedDeductions} />} b={<Amount paise={b.totals.calculatedDeductions} />} delta={signedMoney(cmp.totals.calculatedDeductions.delta)} strong />
             <FootRow
               label="Conditional deductions"

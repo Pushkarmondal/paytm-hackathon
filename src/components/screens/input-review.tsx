@@ -3,7 +3,7 @@
 import { useId } from "react";
 import { rupees } from "@/engine/money";
 import type { CaseInputs, Provenance, SimulationResult, UserClassification } from "@/engine/types";
-import { type Action, type AppState, DEMO_VARIANTS } from "@/model";
+import { type Action, type AppState, DEMO_VARIANTS, POLICY_OPTIONS } from "@/model";
 import { Amount } from "../amounts";
 import { IssuerBadge, ProvenanceBadge, StateBadge } from "../badges";
 import { issuerLabel, money } from "../format";
@@ -60,6 +60,34 @@ export function InputReviewScreen({ state, inputs, result, dispatch }: Props) {
         </p>
       </div>
 
+      <Section title="Policy wording in use" blurb="Two wordings ship in the box: the synthetic demo policy, and a real IRDAI-hosted wording encoded partially and quoted verbatim.">
+        <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
+          {POLICY_OPTIONS.map((p) => {
+            const active = p.id === state.policy;
+            return (
+              <label key={p.id} className={`flex cursor-pointer gap-3 rounded-lg border p-3 ${active ? "border-stone-900 bg-stone-50" : "border-stone-200 hover:bg-stone-50"}`}>
+                <input type="radio" name="policy" value={p.id} checked={active} onChange={() => dispatch({ type: "setPolicy", policy: p.id })} className="mt-1 accent-stone-900" />
+                <span>
+                  <span className="block text-sm font-medium text-stone-900">{p.label}</span>
+                  <span className="block text-xs leading-5 text-stone-600">{p.description}</span>
+                </span>
+              </label>
+            );
+          })}
+        </div>
+        {ruleset.metadata.verification ? (
+          <div className="mt-4 rounded-lg border border-sky-200 bg-sky-50 px-4 py-3 text-xs leading-5 text-sky-950">
+            <p className="font-medium">Verification record</p>
+            <p>
+              Fetched {ruleset.metadata.verification.fetchedOn} from{" "}
+              <a href={ruleset.metadata.verification.url} target="_blank" rel="noreferrer" className="underline underline-offset-2">irdai.gov.in</a>, {ruleset.metadata.verification.pages} pages. SHA-256 <span className="font-mono">{ruleset.metadata.verification.sha256.slice(0, 16)}…</span>. {ruleset.metadata.verification.extractedWith}.
+            </p>
+            <p>Encoded clauses: {ruleset.metadata.verification.encodedClauses.join(", ")}. {ruleset.metadata.verification.note}</p>
+          </div>
+        ) : null}
+      </Section>
+
+      {state.policy === "demo" ? (
       <Section title="Demo case" blurb="Switch the seeded documents to see how the engine refuses to overstate when something is missing or contradictory.">
         <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
           {DEMO_VARIANTS.map((v) => {
@@ -76,6 +104,7 @@ export function InputReviewScreen({ state, inputs, result, dispatch }: Props) {
           })}
         </div>
       </Section>
+      ) : null}
 
       <UploadSection uploads={state.uploads} errors={state.uploadErrors} dispatch={dispatch} />
 
@@ -89,7 +118,7 @@ export function InputReviewScreen({ state, inputs, result, dispatch }: Props) {
           <Field label="Wording version">{ruleset.metadata.wordingVersion}</Field>
           <Field label="Rules encoded">
             <span className="text-right text-xs text-stone-600">
-              {[ruleset.rules.roomLimit && "room limit", ruleset.rules.icuLimit && "ICU limit", ruleset.rules.proportionateDeduction && "proportionate deduction", ruleset.rules.itemClasses && "item classes", ruleset.rules.sumInsuredCap && "sum insured cap"].filter(Boolean).join(", ")}
+              {[ruleset.rules.roomLimit && "room limit", ruleset.rules.icuLimit && "ICU limit", ruleset.rules.proportionateDeduction && "proportionate deduction", ruleset.rules.itemClasses && "item classes", ruleset.rules.copay && "co-payment", ruleset.rules.sumInsuredCap && "sum insured cap"].filter(Boolean).join(", ")}
             </span>
           </Field>
           <details className="mt-3 rounded-lg border border-stone-200 bg-stone-50">

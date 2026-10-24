@@ -11,6 +11,7 @@ const TABS: { id: Screen; label: string; short: string }[] = [
   { id: "why", label: "Why this changed", short: "Why" },
   { id: "uncertainty", label: "What remains uncertain", short: "Uncertain" },
   { id: "review", label: "Input review", short: "Inputs" },
+  { id: "builder", label: "Ruleset builder", short: "Builder" },
 ];
 
 interface Props {

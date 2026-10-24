@@ -25,6 +25,14 @@ Judge-facing. Exact clicks, what to say, and the fallbacks. Rehearse three full 
 | 2:30 | In **B · Planned room**, choose **Deluxe room** | "Change your room. See the difference. Ratio 5 ÷ 12, ₹94,500 from the room choice, ₹99,500 in all. Why this changed names the clause for every row." Optionally tab **Why this changed**. |
 | 2:50 | **Reset to demo** | "Every number you saw has a clause behind it. Everything we could not establish, and everything this version does not model, is on that panel, not hidden in a total." |
 
+If the slot allows a fourth minute, or a judge asks "does it work on a real policy":
+
+| Time | Click | Say |
+|---|---|---|
+| 3:00 | On the overview, switch the **Policy** select to **Arogya Sanjeevani, The New India Assurance** | "A real wording, IRDAI's standard product, downloaded from the regulator's site, ten clauses quoted verbatim, checksum on screen. Under this wording the ₹15,000 ICU day alone triggers the proportion, and implants and diagnostics become ranges: this 2019-20 wording reduces them, IRDAI's 2020 norms later barred that, so the engine says 'requires insurer confirmation' instead of guessing." |
+| 3:30 | Tab **Ruleset builder** | "This is where the model is allowed to help: it proposes rules with quotes, the engine checks every quote verbatim, I confirm. Two proposals are flagged as differing from the reviewed ruleset, and that is the point." Confirm three, press **Apply**. |
+| 3:55 | **Reset to demo** | |
+
 ## The two cases
 
 - **Valid calculation:** the room rent limit (C1) and, once differential billing is confirmed, the proportionate deduction (C3) on the four associated items.
@@ -34,7 +42,9 @@ Judge-facing. Exact clicks, what to say, and the fallbacks. Rehearse three full 
 
 - *Is this a real policy?* No. It is a synthetic wording, labelled as such everywhere. A real wording is loaded as a ruleset through Input review, and every rule must quote its clause exactly or it is refused.
 - *Does it guarantee the payout?* No. The footer says it: a scenario estimate of the deductions this simulation covers, not a claim decision.
-- *Where is the AI?* The calculation is deterministic on purpose. AI's place is extracting candidate clauses from public wordings for a human to confirm, and the architecture has that seam. The demo needs no key.
+- *Where is the AI?* In the Ruleset builder: a model proposes rules from a public wording with verbatim quotes, the engine verifies every quote, a person confirms. The calculation stays deterministic on purpose. The proposals shown are cached; the live adapter is off and was not exercised. The demo needs no key.
+- *Is that a real policy?* Yes: Arogya Sanjeevani, The New India Assurance Co. Ltd., UIN NIAHLIP20165V011920, from irdai.gov.in, partially encoded, checksum and page numbers on Input review. The schedule with it is synthetic.
+- *Which room should I take?* The room ladder on the overview marks the highest room within the limit and shows the deductions at every room. The product does not recommend; it shows.
 - *How accurate is it?* `docs/EVALUATION-RESULTS.md`: measured on the synthetic wording only, with the dataset sizes printed beside each number.
 
 ## Fallbacks, in order

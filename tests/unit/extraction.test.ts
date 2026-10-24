@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import { extractRules } from "@/extraction";
 import { rupees } from "@/engine/money";
 import type { Clause } from "@/engine/types";
+import { NIA_CLAUSES } from "@/fixtures/arogya-sanjeevani-nia";
 import { DEMO_CLAUSES } from "@/fixtures/demo-policy";
 
 describe("extractRules: deterministic candidates from clause text, for human review", () => {
@@ -16,7 +17,7 @@ describe("extractRules: deterministic candidates from clause text, for human rev
   });
 
   it("finds the proportionate deduction with its differential-billing condition", () => {
-    expect(extracted.proportionateDeduction).toEqual({ clauseId: "C3", conditions: ["hospitalFollowsDifferentialBilling"] });
+    expect(extracted.proportionateDeduction).toEqual({ clauseId: "C3", conditions: ["hospitalFollowsDifferentialBilling"], triggers: ["room"] });
   });
 
   it("reads the included and excluded categories from the definition clause", () => {
@@ -41,6 +42,31 @@ describe("extractRules: deterministic candidates from clause text, for human rev
 
   it("detects a proportionate deduction without the differential-billing condition", () => {
     const clauses: Clause[] = [{ id: "P", title: "Deduction", page: 2, text: "If a higher room category is occupied, Associated Medical Expenses are payable in the same proportion as the eligible room rent bears to the actual room rent." }];
-    expect(extractRules(clauses).proportionateDeduction).toEqual({ clauseId: "P", conditions: [] });
+    expect(extractRules(clauses).proportionateDeduction).toEqual({ clauseId: "P", conditions: [], triggers: ["room"] });
+  });
+});
+
+describe("extractRules on the real Arogya Sanjeevani wording", () => {
+  const extracted = extractRules(NIA_CLAUSES);
+
+  it("reads capped percent limits for room and ICU", () => {
+    expect(extracted.roomLimit).toEqual({ clauseId: "4.1(a)", basis: { kind: "percentOfSumInsuredPerDay", percent: 2, capPerDay: rupees(5_000) } });
+    expect(extracted.icuLimit).toEqual({ clauseId: "4.1(b)", basis: { kind: "percentOfSumInsuredPerDay", percent: 5, capPerDay: rupees(10_000) } });
+  });
+
+  it("finds the proportionate payment note with both room and ICU as triggers and no differential-billing condition", () => {
+    expect(extracted.proportionateDeduction).toEqual({ clauseId: "4.1.1 Note (b)", conditions: [], triggers: ["room", "icu"] });
+  });
+
+  it("finds the co-payment percentage and the sum insured cap", () => {
+    expect(extracted.copay).toEqual({ clauseId: "9.5", percent: 5 });
+    expect(extracted.sumInsuredCap).toEqual({ clauseId: "2" });
+  });
+
+  it("proposes an all-other-expenses class from the exception, which a reviewer must still narrow", () => {
+    expect(extracted.itemClasses?.clauseId).toBe("4.1.1 Note (b)");
+    expect(extracted.itemClasses?.excluded).toEqual(["pharmacyConsumables"]);
+    expect(extracted.itemClasses?.included).toContain("surgeonFees");
+    expect(extracted.itemClasses?.included).toContain("implant");
   });
 });

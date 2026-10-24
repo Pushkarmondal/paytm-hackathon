@@ -3,6 +3,8 @@ import { evaluate } from "@/engine/evaluate";
 import { rupees } from "@/engine/money";
 import {
   DEMO_VARIANTS,
+  POLICY_OPTIONS,
+  proposalsFor,
   buildInputs,
   groupUncertainties,
   headlineFor,
@@ -208,5 +210,66 @@ describe("uploads override the demo documents", () => {
     s = reduce(s, { type: "uploadSchedule", schedule: DEMO_SCHEDULE, fileName: "ok.json", warnings: [] });
     expect(s.uploadErrors.schedule).toBeUndefined();
     expect(reduce(s, { type: "reset" })).toEqual(initialState());
+  });
+});
+
+describe("policy switch: the real wording through the same screens", () => {
+  it("opens on the synthetic demo policy and can switch to Arogya Sanjeevani and back", () => {
+    const s0 = initialState();
+    expect(s0.policy).toBe("demo");
+    expect(buildInputs(s0).ruleset.metadata.issuer.kind).toBe("synthetic");
+    const s1 = reduce(s0, { type: "setPolicy", policy: "arogya" });
+    const inputs = buildInputs(s1);
+    expect(inputs.ruleset.metadata.issuer.kind).toBe("insurer");
+    expect(inputs.schedule?.scheduleId).toBe("DEMO-SCH-AS-0001");
+    expect(inputs.estimate.estimateId).toBe("DEMO-EST-0001");
+    expect(buildInputs(reduce(s1, { type: "setPolicy", policy: "demo" })).ruleset.metadata.issuer.kind).toBe("synthetic");
+  });
+
+  it("switching the policy clears confirmations that belong to the other wording's conditions", () => {
+    let s = reduce(initialState(), { type: "confirmDifferentialBilling", value: true });
+    s = reduce(s, { type: "setPolicy", policy: "arogya" });
+    expect(s.confirmations.hospitalFollowsDifferentialBilling).toBeUndefined();
+  });
+
+  it("demo variants apply to the demo policy only; an uploaded ruleset still wins over both", () => {
+    let s = reduce(initialState(), { type: "setVariant", variant: "scheduleMissing" });
+    s = reduce(s, { type: "setPolicy", policy: "arogya" });
+    expect(buildInputs(s).schedule).not.toBeNull();
+    s = reduce(s, { type: "uploadRuleset", ruleset: { ...DEMO_RULESET, fixtureVersion: "up" }, fileName: "r.json", warnings: [] });
+    expect(buildInputs(s).ruleset.fixtureVersion).toBe("up");
+  });
+
+  it("lists the available policies with their labels", () => {
+    expect(POLICY_OPTIONS.map((p) => p.id)).toEqual(["demo", "arogya"]);
+    expect(POLICY_OPTIONS[1].label).toMatch(/Arogya Sanjeevani/);
+  });
+});
+
+describe("ruleset builder: proposals are confirmed one by one, then applied as an uploaded ruleset", () => {
+  it("records decisions and applies only confirmed, verified proposals", () => {
+    let s = reduce(initialState(), { type: "setPolicy", policy: "arogya" });
+    s = reduce(s, { type: "decideProposal", proposalId: "p-room-limit", decision: "confirmed" });
+    s = reduce(s, { type: "decideProposal", proposalId: "p-copay", decision: "rejected" });
+    expect(s.builder.decisions).toEqual({ "p-room-limit": "confirmed", "p-copay": "rejected" });
+    s = reduce(s, { type: "applyProposals" });
+    expect(s.uploads.ruleset?.fileName).toMatch(/builder/);
+    const inputs = buildInputs(s);
+    expect(inputs.ruleset.rules.roomLimit).toBeDefined();
+    expect(inputs.ruleset.rules.copay).toBeUndefined();
+    expect(inputs.ruleset.rules.proportionateDeduction).toBeUndefined();
+  });
+
+  it("does nothing when nothing is confirmed, and reset clears the decisions", () => {
+    let s = reduce(initialState(), { type: "setPolicy", policy: "arogya" });
+    s = reduce(s, { type: "applyProposals" });
+    expect(s.uploads.ruleset).toBeUndefined();
+    s = reduce(s, { type: "decideProposal", proposalId: "p-copay", decision: "confirmed" });
+    expect(reduce(s, { type: "reset" }).builder.decisions).toEqual({});
+  });
+
+  it("exposes the cached proposals for the real wording and none for the synthetic one", () => {
+    expect(proposalsFor("arogya").length).toBeGreaterThan(4);
+    expect(proposalsFor("demo")).toEqual([]);
   });
 });

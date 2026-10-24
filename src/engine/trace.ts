@@ -7,6 +7,7 @@ export function collectTraces(result: SimulationResult): Trace[] {
     if (block.trace) traces.push(block.trace);
   }
   if (result.deductionRule.trace) traces.push(result.deductionRule.trace);
+  if (result.copay.trace) traces.push(result.copay.trace);
   for (const item of result.items) {
     if (item.trace) traces.push(item.trace);
   }

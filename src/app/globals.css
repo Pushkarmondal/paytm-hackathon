@@ -36,3 +36,11 @@ body {
     animation: none;
   }
 }
+
+@media print {
+  body > div > header,
+  body > div > main,
+  body > div > footer {
+    display: none;
+  }
+}

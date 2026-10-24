@@ -62,13 +62,19 @@ export function resolveLimit(
 
   switch (rule.basis.kind) {
     case "percentOfSumInsuredPerDay": {
-      computed = mulRatio(schedule.sumInsured, percentToRatio(rule.basis.percent));
-      operation = "limit.percentOfSumInsuredPerDay";
-      formula = `eligiblePerDay = ${rule.basis.percent}% × ${formatInr(schedule.sumInsured)} = ${formatInr(computed)} per day`;
+      const byPercent = mulRatio(schedule.sumInsured, percentToRatio(rule.basis.percent));
+      const cap = rule.basis.capPerDay;
+      computed = cap !== undefined && cap < byPercent ? cap : byPercent;
+      operation = cap !== undefined ? "limit.percentOfSumInsuredPerDayCapped" : "limit.percentOfSumInsuredPerDay";
+      formula =
+        cap !== undefined
+          ? `eligiblePerDay = min(${rule.basis.percent}% × ${formatInr(schedule.sumInsured)} = ${formatInr(byPercent)}, cap ${formatInr(cap)}) = ${formatInr(computed)} per day`
+          : `eligiblePerDay = ${rule.basis.percent}% × ${formatInr(schedule.sumInsured)} = ${formatInr(computed)} per day`;
       inputs.push(
         { name: "sumInsured", value: { kind: "money", paise: schedule.sumInsured }, provenance: schedule.provenance },
         { name: "percentPerDay", value: { kind: "percent", percent: rule.basis.percent }, provenance: rulesetProvenance },
       );
+      if (cap !== undefined) inputs.push({ name: "capPerDay", value: { kind: "money", paise: cap }, provenance: rulesetProvenance });
       break;
     }
     case "fixedPerDay": {
