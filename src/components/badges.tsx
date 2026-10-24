@@ -50,8 +50,13 @@ export function IssuerBadge({ issuer }: { issuer: IssuerInfo }) {
     );
   }
   return (
-    <span className="inline-flex items-center gap-1.5 whitespace-nowrap rounded-full bg-stone-100 px-2.5 py-1 text-xs font-medium text-stone-800 ring-1 ring-stone-200">
-      Insurer-issued: {issuer.name}
+    <span
+      className="inline-flex items-center gap-1.5 whitespace-nowrap rounded-full bg-sky-50 px-2.5 py-1 text-xs font-medium text-sky-900 ring-1 ring-sky-200"
+      title={`${issuer.name}${issuer.uin ? `, UIN ${issuer.uin}` : ""}. Real wording, partially encoded.`}
+    >
+      <span aria-hidden className="h-1.5 w-1.5 rounded-full bg-sky-600" />
+      <span className="hidden sm:inline">Real wording · partially encoded</span>
+      <span className="sm:hidden">Real wording</span>
     </span>
   );
 }

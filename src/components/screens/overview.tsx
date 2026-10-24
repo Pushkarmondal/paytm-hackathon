@@ -2,7 +2,7 @@
 
 import type { Money } from "@/engine/money";
 import type { CaseInputs, SimulationResult } from "@/engine/types";
-import type { Headline, RoomChoice, Side } from "@/model";
+import { type Headline, POLICY_OPTIONS, type PolicyId, type RoomChoice, type Side } from "@/model";
 import { Amount, RangeAmount } from "../amounts";
 import { IssuerBadge, ProvenanceBadge, StateBadge } from "../badges";
 import { issuerLabel, money } from "../format";
@@ -13,6 +13,8 @@ interface Props {
   result: SimulationResult;
   headline: Headline;
   planned: RoomChoice;
+  policy: PolicyId;
+  onSetPolicy: (policy: PolicyId) => void;
   onSelectRoom: (side: Side, roomId: string) => void;
   onSetRate: (side: Side, rate: Money) => void;
   onOpenTwin: () => void;
@@ -37,7 +39,7 @@ function Row({ label, children }: { label: string; children: React.ReactNode }) 
   );
 }
 
-export function OverviewScreen({ inputs, result, headline, planned, onSelectRoom, onSetRate, onOpenTwin, onOpenUncertainty }: Props) {
+export function OverviewScreen({ inputs, result, headline, planned, policy, onSetPolicy, onSelectRoom, onSetRate, onOpenTwin, onOpenUncertainty }: Props) {
   const { ruleset, schedule, estimate } = inputs;
   const overallBadge =
     headline.state === "cannotDetermine" ? "unknown" : headline.state === "reviewRequired" ? "reviewRequired" : headline.state;
@@ -103,6 +105,17 @@ export function OverviewScreen({ inputs, result, headline, planned, onSelectRoom
 
       <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
         <Card title="Policy">
+          <label htmlFor="policy-select" className="sr-only">Policy wording</label>
+          <select
+            id="policy-select"
+            value={policy}
+            onChange={(e) => onSetPolicy(e.target.value as PolicyId)}
+            className="mb-3 h-10 w-full rounded-lg border border-stone-300 bg-white px-3 text-sm font-medium text-stone-900 shadow-sm focus:outline-none focus:ring-2 focus:ring-stone-900"
+          >
+            {POLICY_OPTIONS.map((p) => (
+              <option key={p.id} value={p.id}>{p.label}</option>
+            ))}
+          </select>
           <p className="text-base font-semibold text-stone-900">{ruleset.metadata.name}</p>
           <p className="mt-1 text-sm text-stone-600">{issuerLabel(ruleset.metadata.issuer)}</p>
           <div className="mt-3">
@@ -122,6 +135,12 @@ export function OverviewScreen({ inputs, result, headline, planned, onSelectRoom
             </Row>
             <Row label="Room rent limit">
               {result.roomLimit.eligiblePerDay !== null ? `${money(result.roomLimit.eligiblePerDay)} per day` : <StateBadge state={result.roomLimit.state} />}
+            </Row>
+            <Row label="ICU limit">
+              {result.icuLimit.eligiblePerDay !== null ? `${money(result.icuLimit.eligiblePerDay)} per day` : <StateBadge state={result.icuLimit.state} />}
+            </Row>
+            <Row label="Co-payment">
+              {ruleset.rules.copay ? `${ruleset.rules.copay.percent}% of the admissible amount` : "None in this wording"}
             </Row>
             <Row label="Fixture version">
               <span className="font-mono text-xs">{ruleset.fixtureVersion}</span>

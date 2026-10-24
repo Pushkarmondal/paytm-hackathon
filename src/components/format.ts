@@ -63,5 +63,7 @@ export function traceValue(value: TraceValue): string {
 }
 
 export function issuerLabel(issuer: IssuerInfo): string {
-  return issuer.kind === "synthetic" ? "Synthetic demo policy. Not issued by any insurer." : `Issued by ${issuer.name}`;
+  return issuer.kind === "synthetic"
+    ? "Synthetic demo policy. Not issued by any insurer."
+    : `Issued by ${issuer.name}${issuer.uin ? ` (UIN ${issuer.uin})` : ""}. Real wording, hosted by IRDAI; only the encoded clauses are modelled.`;
 }

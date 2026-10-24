@@ -19,6 +19,7 @@ import type {
   UncertaintyReason,
   UserClassification,
 } from "@/engine/types";
+import { arogyaInputs } from "@/fixtures/arogya-sanjeevani-nia";
 import {
   DEMO_RULESET_WITHOUT_DEDUCTION,
   DEMO_SCHEDULE_CONTRADICTORY,
@@ -31,6 +32,18 @@ import { formatInr } from "@/lib/format-inr";
 export type Screen = "overview" | "twin" | "why" | "uncertainty" | "review";
 export type Side = "planned" | "comparison";
 export type VariantId = "standard" | "scheduleMissing" | "scheduleContradictory" | "noDeductionClause";
+export type PolicyId = "demo" | "arogya";
+
+export interface PolicyOption {
+  id: PolicyId;
+  label: string;
+  description: string;
+}
+
+export const POLICY_OPTIONS: readonly PolicyOption[] = [
+  { id: "demo", label: "Claim Sach Demo Health Policy (synthetic)", description: "Invented wording with a defined Associated Medical Expenses class and a differential-billing condition. Not issued by any insurer." },
+  { id: "arogya", label: "Arogya Sanjeevani, The New India Assurance (IRDAI-hosted, partially encoded)", description: "A real wording, UIN NIAHLIP20165V011920, downloaded from irdai.gov.in and quoted verbatim. Only the room, ICU, proportionate-payment and co-payment clauses are encoded. The schedule is synthetic." },
+];
 
 export interface RoomChoice {
   roomId: string;
@@ -58,6 +71,7 @@ export interface Uploads {
 
 export interface AppState {
   screen: Screen;
+  policy: PolicyId;
   variant: VariantId;
   plannedRoom: RoomChoice;
   comparisonRoom: RoomChoice;
@@ -75,6 +89,7 @@ export type Action =
   | { type: "confirmDifferentialBilling"; value: boolean | null }
   | { type: "classifyItem"; itemId: string; classification: UserClassification | null }
   | { type: "setVariant"; variant: VariantId }
+  | { type: "setPolicy"; policy: PolicyId }
   | { type: "setRoomDays"; days: number }
   | { type: "setSumInsured"; sumInsured: Money }
   | { type: "openTrace"; title: string; trace: Trace }
@@ -103,6 +118,7 @@ export const DEMO_VARIANTS: readonly DemoVariant[] = [
 export function initialState(): AppState {
   return {
     screen: "overview",
+    policy: "demo",
     variant: "standard",
     plannedRoom: { roomId: ROOM_SINGLE },
     comparisonRoom: { roomId: ROOM_TWIN },
@@ -146,6 +162,12 @@ export function reduce(state: AppState, action: Action): AppState {
     }
     case "setVariant":
       return { ...state, variant: action.variant };
+    case "setPolicy": {
+      if (action.policy === state.policy) return state;
+      const confirmations = { ...state.confirmations };
+      delete confirmations.hospitalFollowsDifferentialBilling;
+      return { ...state, policy: action.policy, confirmations };
+    }
     case "setRoomDays":
       return { ...state, edits: { ...state.edits, roomDays: action.days } };
     case "setSumInsured":
@@ -195,9 +217,9 @@ export function reduce(state: AppState, action: Action): AppState {
 
 /** Engine inputs for the current variant, edits and confirmations. */
 export function buildInputs(state: AppState): CaseInputs {
-  const base = demoInputs();
+  const base = state.policy === "arogya" ? arogyaInputs() : demoInputs();
   let { ruleset, schedule, estimate } = base;
-  switch (state.variant) {
+  switch (state.policy === "demo" ? state.variant : "standard") {
     case "scheduleMissing":
       schedule = null;
       break;

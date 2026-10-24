@@ -37,6 +37,8 @@ export function ClaimSachApp() {
           result={planned}
           headline={headline}
           planned={state.plannedRoom}
+          policy={state.policy}
+          onSetPolicy={(p) => dispatch({ type: "setPolicy", policy: p })}
           onSelectRoom={selectRoom}
           onSetRate={setRate}
           onOpenTwin={() => dispatch({ type: "setScreen", screen: "twin" })}
