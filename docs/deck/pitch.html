@@ -1,0 +1,245 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Claim Sach: Coverage Twin</title>
+<style>
+  @font-face { font-family: "Geist"; src: url("../../node_modules/geist/dist/fonts/geist-sans/Geist-Variable.woff2") format("woff2"); font-weight: 100 900; }
+  @font-face { font-family: "Geist Mono"; src: url("../../node_modules/geist/dist/fonts/geist-mono/GeistMono-Variable.woff2") format("woff2"); font-weight: 100 900; }
+  @page { size: 1280px 720px; margin: 0; }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html, body { width: 1280px; }
+  body { font-family: "Geist", "Helvetica Neue", Helvetica, Arial, sans-serif; color: #1C1917; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+  .slide { width: 1280px; height: 720px; overflow: hidden; position: relative; page-break-after: always; break-after: page; background: #FFFFFF; padding: 56px 64px 48px; }
+  .slide:last-child { page-break-after: auto; }
+  .dark { background: #1C1917; color: #FFFFFF; }
+  .kicker { font-size: 13px; font-weight: 600; letter-spacing: 0.12em; text-transform: uppercase; color: #78716C; }
+  .dark .kicker { color: #A8A29E; }
+  h1 { font-size: 36px; font-weight: 600; letter-spacing: -0.02em; line-height: 1.15; margin-top: 10px; }
+  .dark h1 { font-size: 64px; }
+  p, li { font-size: 17px; line-height: 1.5; color: #44403C; }
+  .dark p, .dark li { color: #D6D3D1; }
+  .footer { position: absolute; left: 64px; right: 64px; bottom: 22px; display: flex; justify-content: space-between; font-size: 11.5px; color: #78716C; }
+  .cols { display: grid; gap: 28px; margin-top: 26px; }
+  .card { background: #F5F5F4; border: 1px solid #E7E5E4; border-radius: 12px; padding: 18px 20px; }
+  .card h3 { font-size: 16px; font-weight: 600; color: #1C1917; margin-bottom: 6px; }
+  .card p { font-size: 14px; line-height: 1.45; }
+  .stat { background: #F5F5F4; border: 1px solid #E7E5E4; border-radius: 12px; padding: 16px 20px; }
+  .stat .big { font-size: 30px; font-weight: 600; color: #B45309; letter-spacing: -0.02em; }
+  .stat .small { font-size: 13.5px; color: #57534E; margin-top: 4px; line-height: 1.4; }
+  .shot { border: 1px solid #D6D3D1; border-radius: 12px; overflow: hidden; background: #fff; box-shadow: 0 10px 30px rgba(28,25,23,0.10); }
+  .shot img { display: block; width: 100%; height: 100%; object-fit: cover; object-position: top; }
+  .pill { display: inline-block; font-size: 11px; font-weight: 600; letter-spacing: 0.06em; text-transform: uppercase; padding: 5px 10px; border-radius: 999px; border: 1px solid; }
+  .pill.green { color: #15803D; border-color: #86EFAC; background: #F0FDF4; }
+  .pill.amber { color: #B45309; border-color: #FCD34D; background: #FFFBEB; }
+  .pill.violet { color: #6D28D9; border-color: #C4B5FD; background: #F5F3FF; }
+  .pill.sky { color: #0369A1; border-color: #7DD3FC; background: #F0F9FF; }
+  table { border-collapse: collapse; width: 100%; font-size: 13.5px; }
+  th, td { text-align: left; padding: 8px 10px; border-bottom: 1px solid #E7E5E4; vertical-align: top; line-height: 1.35; }
+  th { font-weight: 600; color: #1C1917; font-size: 12px; text-transform: uppercase; letter-spacing: 0.06em; color: #78716C; }
+  td.num { text-align: right; font-variant-numeric: tabular-nums; white-space: nowrap; }
+  .caption { font-size: 12.5px; color: #78716C; font-style: italic; }
+  .flow { display: grid; grid-template-columns: repeat(6, 1fr); gap: 10px; margin-top: 24px; }
+  .step { border: 1px solid #D6D3D1; border-radius: 10px; padding: 10px 12px; font-size: 13.5px; font-weight: 600; text-align: center; color: #1C1917; background: #FAFAF9; }
+  .step.hot { background: #1C1917; color: #fff; border-color: #1C1917; }
+  .step span { display: block; font-size: 11px; font-weight: 500; color: #A8A29E; margin-bottom: 2px; }
+  .step.hot span { color: #D6D3D1; }
+  ul { list-style: none; }
+  ul.bul li { position: relative; padding-left: 18px; margin-bottom: 8px; }
+  ul.bul li::before { content: ""; position: absolute; left: 0; top: 10px; width: 7px; height: 7px; border-radius: 50%; background: #B45309; }
+  .pillars li { display: grid; grid-template-columns: 34px 1fr; gap: 14px; margin-bottom: 18px; }
+  .pillars .n { width: 30px; height: 30px; border-radius: 50%; background: #B45309; color: #fff; font-weight: 600; font-size: 14px; display: flex; align-items: center; justify-content: center; margin-top: 2px; }
+  .pillars h3 { font-size: 17px; font-weight: 600; color: #1C1917; margin-bottom: 3px; }
+  .pillars p { font-size: 14.5px; }
+  .mono { font-family: "Geist Mono", Menlo, monospace; }
+  .brand { display: flex; align-items: center; gap: 10px; font-size: 14px; color: #D6D3D1; }
+  .brand i { width: 12px; height: 12px; border-radius: 50%; background: #6D28D9; display: inline-block; }
+</style>
+</head>
+<body>
+
+<!-- 1. Title -->
+<section class="slide dark">
+  <div class="brand"><i></i>Evidence-backed, interactive health-insurance coverage simulator</div>
+  <div style="display:grid; grid-template-columns: 1fr 480px; gap: 40px; margin-top: 70px; align-items: start;">
+    <div>
+      <h1>Claim Sach</h1>
+      <p style="font-size:24px; color:#F5F5F4; margin-top:12px; line-height:1.3;">Coverage Twin · Track 2: AI-Powered Financial Journeys</p>
+      <p style="font-size:20px; color:#FFFFFF; margin-top:34px; line-height:1.4;">Know what your policy might leave you paying before admission.</p>
+      <p style="font-size:15px; margin-top:34px;">Pushkar Mondal · Paytm Build for India AI Hackathon, Bengaluru · October 2026</p>
+      <p style="font-size:14px; margin-top:8px;">A working prototype: deterministic engine, 180 tests, a real IRDAI-hosted wording encoded and measured, runs offline.<br><span class="mono">github.com/Pushkarmondal/paytm-hackathon</span></p>
+    </div>
+    <div class="shot" style="width:480px; height:430px; border-color:#44403C;"><img src="images/01-overview.jpg" alt="Scenario overview"></div>
+  </div>
+</section>
+
+<!-- 2. Problem -->
+<section class="slide">
+  <div class="kicker">Problem statement</div>
+  <h1>The policy's cost shows up at the hospital</h1>
+  <div class="cols" style="grid-template-columns: 1fr 440px;">
+    <div>
+      <p>Room-rent limits, proportionate deductions, sub-limits and exclusions surface at admission, not at purchase.</p>
+      <p style="margin-top:14px;">The room-rent clause is the sharpest. Pick a room above the eligible rate and many policies pay the surgeon, anaesthetist, nursing and operation-theatre charges only in the proportion <em>eligible ÷ actual rate</em>. It is not about the room.</p>
+      <p style="margin-top:14px;">Which items are touched depends on the policy's own definition. General explainers stop at the concept; the gap we are testing is applying <em>your</em> wording to <em>your</em> bill.</p>
+      <p class="caption" style="margin-top:22px;">Worked example on a synthetic policy and estimate, computed by the prototype. Not a market statistic.</p>
+    </div>
+    <div style="display:grid; gap:14px;">
+      <div class="stat"><div class="big">₹2,500 a day</div><div class="small">the room-rent gap in our worked example: ₹7,500 chosen against ₹5,000 eligible</div></div>
+      <div class="stat"><div class="big">₹48,000</div><div class="small">potential deductions from that one choice, ₹38,000 of it on items that are not the room</div></div>
+      <div class="stat"><div class="big">4 of 11 lines</div><div class="small">affected under the policy's definition; 3 excluded by it; 2 the wording never classifies</div></div>
+    </div>
+  </div>
+  <div class="footer"><span>Claim Sach · Coverage Twin · Paytm Build for India AI Hackathon, Bengaluru, 31 Oct 2026</span><span>2</span></div>
+</section>
+
+<!-- 3. Solution -->
+<section class="slide">
+  <div class="kicker">Proposed solution</div>
+  <h1>Coverage Twin: your wording, your bill, live</h1>
+  <div class="flow">
+    <div class="step"><span>1</span>Policy documents</div>
+    <div class="step"><span>2</span>Structured rules</div>
+    <div class="step"><span>3</span>Scenario simulation</div>
+    <div class="step hot"><span>4</span>Itemised potential deductions</div>
+    <div class="step"><span>5</span>Source clause</div>
+    <div class="step"><span>6</span>Explicit uncertainty</div>
+  </div>
+  <div class="cols" style="grid-template-columns: 1fr 560px; margin-top:22px;">
+    <div>
+      <p style="font-weight:600; color:#1C1917;">What a judge does in three minutes</p>
+      <ul class="bul" style="margin-top:10px;">
+        <li>Open the example policy and estimate.</li>
+        <li>Change the room; the itemised breakdown updates at once.</li>
+        <li>Click any amount: clause, page, inputs with provenance, formula.</li>
+        <li>Open the uncertainty panel: what could not be established, and who can settle it.</li>
+        <li>Switch to a real wording and watch the same engine refuse to guess.</li>
+      </ul>
+      <p class="caption" style="margin-top:16px;">Not a chatbot. Not a payout guarantee. A scenario estimate of the deductions it covers, with its unknowns on screen.</p>
+    </div>
+    <div class="shot" style="width:560px; height:400px;"><img style="object-position: bottom;" src="images/crop-twin.jpg" alt="Coverage Twin"></div>
+  </div>
+  <div class="footer"><span>Claim Sach · Coverage Twin · Paytm Build for India AI Hackathon, Bengaluru, 31 Oct 2026</span><span>3</span></div>
+</section>
+
+<!-- 4. Technology -->
+<section class="slide">
+  <div class="kicker">Technology / tech stack</div>
+  <h1>Deterministic engine, AI only with human review</h1>
+  <div class="cols" style="grid-template-columns: repeat(3, 1fr); gap: 18px; margin-top: 24px;">
+    <div class="card"><h3>Frontend</h3><p>TypeScript, strict. Next.js 16 (App Router), React 19, Tailwind 4. Six screens on a tested screen model; no business logic in components.</p></div>
+    <div class="card"><h3>Rules engine</h3><p>Pure TypeScript, no I/O, no model. Integer paise, exact ratios, one half-up rounding. A trace on every amount: rule, inputs, clause, formula, output, open assumptions.</p></div>
+    <div class="card"><h3>Two wordings</h3><p>A synthetic demo policy, and Arogya Sanjeevani (New India, from irdai.gov.in): ten clauses quoted verbatim, page-cited, SHA-256 shown. Partially encoded and labelled so.</p></div>
+    <div class="card"><h3>AI, in its place</h3><p>The Ruleset builder: a model proposes rules with quotes; the engine verifies each quote verbatim; a person confirms. Cached in this build; the live adapter is off. Never in the calculation path.</p></div>
+    <div class="card"><h3>Quality</h3><p>Vitest, 180 tests, written first. GitHub Actions on every PR. Evaluation harness: six measures over two wordings, results committed and checked for staleness.</p></div>
+    <div class="card"><h3>Runs anywhere</h3><p>One command, offline on localhost; fonts bundled; Vercel-ready. Nothing the user enters leaves the browser. No key, no account, no analytics, no database.</p></div>
+  </div>
+  <div style="margin-top:28px; border:1px solid #E7E5E4; border-radius:12px; padding:16px 20px; background:#FAFAF9;">
+    <div class="kicker" style="font-size:11px;">Data flow, all in the browser</div>
+    <p class="mono" style="font-size:13.5px; color:#1C1917; margin-top:8px; line-height:1.6;">fixture or upload (JSON, CSV) → ingestion: Zod schema + verbatim evidence check → screen model → rules engine: classify → limits → proportion → co-payment → traces → six screens, question sheet, evidence pack</p>
+    <p style="font-size:13px; color:#57534E; margin-top:6px;">AI seam, off by default: public clause text → model proposals → verbatim quote check → human confirmation → ruleset. No schedule, bill or name ever leaves the browser.</p>
+  </div>
+  <div class="footer"><span>Claim Sach · Coverage Twin · Paytm Build for India AI Hackathon, Bengaluru, 31 Oct 2026</span><span>4</span></div>
+</section>
+
+<!-- 5. USP -->
+<section class="slide">
+  <div class="kicker">USP</div>
+  <h1>Item-level, clause-cited, honest about unknowns</h1>
+  <div class="cols" style="grid-template-columns: 420px 1fr; gap: 36px; margin-top: 22px;">
+    <div style="display:grid; gap:14px;">
+      <div class="shot" style="width:420px; height:296px;"><img src="images/crop-builder.jpg" alt="Ruleset builder"></div>
+      <div style="display:grid; grid-template-columns: 1fr 1fr; gap:14px;">
+        <div class="shot" style="height:150px;"><img src="images/crop-trace.jpg" alt="Trace drawer" style="object-position: top;"></div>
+        <div class="shot" style="height:150px;"><img src="images/crop-real.jpg" alt="Real wording"></div>
+      </div>
+    </div>
+    <div>
+      <ul class="pillars">
+        <li><div class="n">1</div><div><h3>Every number is clickable</h3><p>Clause and page, inputs with where they came from, the formula, the operation. Tampered traces fail validation.</p></div></li>
+        <li><div class="n">2</div><div><h3>Unknown is never zero</h3><p>Items the wording does not classify stay out of every total. A conditional amount shows both bounds and the condition.</p></div></li>
+        <li><div class="n">3</div><div><h3>Change your room, see the difference</h3><p>Two rooms side by side, the rule behind every changed row; the room ladder and the question sheet turn it into a decision and a call script.</p></div></li>
+        <li><div class="n">4</div><div><h3>Proven on a real wording, honestly</h3><p>Arogya Sanjeevani, ten clauses verbatim with a checksum; where the 2019-20 text conflicts with IRDAI's 2020 norms, the engine says so.</p></div></li>
+      </ul>
+      <p class="caption">Bounded review of nine public sources: none did this. We do not claim nobody does; we claim we looked.</p>
+    </div>
+  </div>
+  <div class="footer"><span>Claim Sach · Coverage Twin · Paytm Build for India AI Hackathon, Bengaluru, 31 Oct 2026</span><span>5</span></div>
+</section>
+
+<!-- 6. Impact -->
+<section class="slide">
+  <div class="kicker">Impact &amp; benefits</div>
+  <h1>The room decision, made before admission</h1>
+  <div class="cols" style="grid-template-columns: 500px 1fr; gap: 36px; margin-top: 22px;">
+    <div style="display:grid; gap:16px;">
+      <div class="card"><h3 style="color:#0369A1;">For the policyholder</h3><p>The room decision with its deductions visible before admission, not after. Questions for the hospital and the insurer written out: what to ask, and what it is worth.</p></div>
+      <div class="card"><h3 style="color:#0369A1;">For a broker's claim-assistance agent</h3><p>The clause on screen during the call. The uncertainty list is the call script; the evidence pack is the written answer.</p></div>
+      <div class="shot" style="height:168px;"><img src="images/crop-uncertainty.jpg" alt="What remains uncertain"></div>
+    </div>
+    <div>
+      <span class="pill green">Measured, not claimed</span>
+      <table style="margin-top:12px;">
+        <thead><tr><th>Measure</th><th style="text-align:right;">Synthetic</th><th style="text-align:right;">Real wording</th></tr></thead>
+        <tbody>
+          <tr><td>Clause retrieval, top-1</td><td class="num">11 of 12</td><td class="num">10 of 12</td></tr>
+          <tr><td>Rule extraction, field-level</td><td class="num">10 of 10</td><td class="num">10 of 12</td></tr>
+          <tr><td>Calculations, exact paise</td><td class="num">9 of 9 · 46 amounts</td><td class="num">3 of 3 · 21 amounts</td></tr>
+          <tr><td>Uncertainty and refusal</td><td class="num">6 of 6</td><td class="num">3 of 3</td></tr>
+          <tr><td>Model proposals: quotes verbatim (cached)</td><td class="num">n/a</td><td class="num">6 of 6</td></tr>
+          <tr><td>Model proposals: agree with reviewer (cached)</td><td class="num">n/a</td><td class="num">11 of 13</td></tr>
+        </tbody>
+      </table>
+      <p class="caption" style="margin-top:14px;">Measured on the synthetic wording and on ten encoded clauses of one real wording; the model proposals are cached, not a live run. The product shows no accuracy figure anywhere. Figures on this slide are potential deductions covered by the simulation, never total out-of-pocket cost.</p>
+    </div>
+  </div>
+  <div class="footer"><span>Claim Sach · Coverage Twin · Paytm Build for India AI Hackathon, Bengaluru, 31 Oct 2026</span><span>6</span></div>
+</section>
+
+<!-- 7. Business model -->
+<section class="slide">
+  <div class="kicker">Business model</div>
+  <h1>Where it fits Paytm, and what must be tested</h1>
+  <div class="cols" style="grid-template-columns: 1fr 1fr; gap: 36px; margin-top: 22px;">
+    <div>
+      <span class="pill green">Verified facts</span>
+      <ul class="bul" style="margin-top:12px;">
+        <li style="font-size:14.5px;">Paytm Insurance Broking Pvt Ltd is a Direct (Life &amp; General) broker: IRDAI Reg. No. 700, renewed 9 Feb 2026, valid to 16 Feb 2029.</li>
+        <li style="font-size:14.5px;">It distributes car, two-wheeler, health, life and term policies from 18+ insurers, including Niva Bupa and Aditya Birla Health. It does not underwrite.</li>
+        <li style="font-size:14.5px;">It already offers claim assistance by phone. Arogya Sanjeevani is IRDAI's standard product on one wording; one verified encoding serves every insurer that sells it.</li>
+        <li style="font-size:14.5px;">FY25 turnover ₹37.1 crore, loss ₹13.2 crore (Form AOC-1), inside a ₹2,593 crore financial-services line in FY26. Insurance is a small line for Paytm today; clarity is a wedge worth testing.</li>
+      </ul>
+    </div>
+    <div>
+      <span class="pill amber">Hypotheses, each with its test</span>
+      <table style="margin-top:12px;">
+        <thead><tr><th>Hypothesis</th><th>Test</th></tr></thead>
+        <tbody>
+          <tr><td>Fewer claim-time support contacts and disputes</td><td>Pilot cohort against a matched cohort</td></tr>
+          <tr><td>More eligible-room choices when the consequence is visible</td><td>Room-change rate in the simulator, then claims data</td></tr>
+          <tr><td>Panel insurers co-fund a coverage-clarity tool</td><td>Three conversations; one signed pilot letter is the pass</td></tr>
+          <tr><td>A coverage check lifts conversion or renewal on the policy page</td><td>A/B test, if Paytm chooses to run one</td></tr>
+        </tbody>
+      </table>
+      <p class="caption" style="margin-top:14px;">Revenue options depend on those tests: a broker-side feature (retention), an insurer-paid integration, or a premium claim-assistance tier. No Paytm integration is claimed or built. Bima Sugam is not live; it belongs in the future tense.</p>
+    </div>
+  </div>
+  <div class="footer"><span>Claim Sach · Coverage Twin · Paytm Build for India AI Hackathon, Bengaluru, 31 Oct 2026</span><span>7</span></div>
+</section>
+
+<!-- 8. Closing -->
+<section class="slide dark">
+  <div class="brand"><i></i>Claim Sach · Coverage Twin</div>
+  <div style="display:grid; grid-template-columns: 1fr 520px; gap: 40px; margin-top: 60px; align-items: start;">
+    <div>
+      <h1 style="font-size:52px;">Built, tested, runs offline</h1>
+      <p class="mono" style="font-size:16px; color:#F5F5F4; margin-top:18px;">github.com/Pushkarmondal/paytm-hackathon · npm install &amp;&amp; npm run dev</p>
+      <p style="font-size:16px; margin-top:28px;">180 unit tests · two wordings, one of them real · six evaluation measures · a ruleset builder where a model proposes and a person confirms · a trace on every number.</p>
+      <p style="font-size:16px; margin-top:18px;">Next: a second real wording through the builder with the live adapter on; independent review of the evaluation fixtures; a four-week pilot at a broker's claim-assistance desk.</p>
+    </div>
+    <div class="shot" style="width:520px; height:250px; border-color:#44403C;"><img src="images/crop-ladder.jpg" alt="Room ladder" style="object-position: top;"></div>
+  </div>
+</section>
+
+</body>
+</html>
