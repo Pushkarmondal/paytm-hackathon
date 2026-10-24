@@ -9,7 +9,11 @@ import { writeFileSync } from "node:fs";
 import { evaluate } from "@/engine/evaluate";
 import { ENGINE_VERSION } from "@/engine/types";
 import { extractRules } from "@/extraction";
-import { NIA_CLAUSES, NIA_FIXTURE_VERSION } from "@/fixtures/arogya-sanjeevani-nia";
+import { verifyProposals, type RuleProposal } from "@/ai";
+import { proposalFieldChecks } from "@/ai/compare";
+import type { PolicyRuleset } from "@/engine/types";
+import { NIA_CLAUSES, NIA_FIXTURE_VERSION, NIA_RULESET } from "@/fixtures/arogya-sanjeevani-nia";
+import { NIA_PROPOSALS, NIA_PROPOSALS_PROVENANCE } from "@/fixtures/arogya-sanjeevani-nia/llm-proposals";
 import { DEMO_CLAUSES, DEMO_FIXTURE_VERSION } from "@/fixtures/demo-policy";
 import { retrieveClauses } from "@/retrieval";
 import type { Clause } from "@/engine/types";
@@ -23,11 +27,12 @@ interface Dataset {
   extraction: { field: string; expected: unknown; actual: (e: ReturnType<typeof extractRules>) => unknown }[];
   calculation: CalculationCase[];
   refusal: RefusalCase[];
+  proposals?: { items: RuleProposal[]; reviewed: PolicyRuleset };
 }
 
 const DATASETS: Dataset[] = [
   { label: "synthetic demo wording (5 clauses)", clauses: DEMO_CLAUSES, retrieval: RETRIEVAL_CASES, extraction: EXTRACTION_FIELDS, calculation: CALCULATION_CASES, refusal: REFUSAL_CASES },
-  { label: "Arogya Sanjeevani, New India (10 encoded clauses of a real wording)", clauses: NIA_CLAUSES, retrieval: RETRIEVAL_CASES_NIA, extraction: EXTRACTION_FIELDS_NIA, calculation: CALCULATION_CASES_NIA, refusal: REFUSAL_CASES_NIA },
+  { label: "Arogya Sanjeevani, New India (10 encoded clauses of a real wording)", clauses: NIA_CLAUSES, retrieval: RETRIEVAL_CASES_NIA, extraction: EXTRACTION_FIELDS_NIA, calculation: CALCULATION_CASES_NIA, refusal: REFUSAL_CASES_NIA, proposals: { items: NIA_PROPOSALS, reviewed: NIA_RULESET } },
 ];
 
 interface Measure {
@@ -104,6 +109,18 @@ function refusal(d: Dataset): Measure {
   return { name: "Uncertainty and refusal quality", passed: d.refusal.length - failures.length, total: d.refusal.length, dataset: `${d.refusal.length} cases with an expected state, values that must stay unknown, and expected reasons, on the ${d.label}`, failures };
 }
 
+function proposalMeasures(d: Dataset): Measure[] {
+  if (!d.proposals) return [];
+  const verified = verifyProposals(d.proposals.items, d.clauses);
+  const quoteFailures = verified.filter((v) => !v.verification.quoteFound).map((v) => `${v.proposal.id}: ${v.verification.problems.join("; ")}`);
+  const checks = d.proposals.items.flatMap((p) => proposalFieldChecks(p, d.proposals!.reviewed).map((c) => ({ ...c, id: p.id })));
+  const fieldFailures = checks.filter((c) => !c.same).map((c) => `${c.id} ${c.field}: proposed ${JSON.stringify(c.actual)}, reviewed ${JSON.stringify(c.expected)}`);
+  return [
+    { name: "LLM proposals: quotes verified verbatim (cached)", passed: verified.length - quoteFailures.length, total: verified.length, dataset: `${verified.length} cached proposals (${NIA_PROPOSALS_PROVENANCE.model}; not an API run)`, failures: quoteFailures },
+    { name: "LLM proposals: field agreement with the reviewed ruleset (cached)", passed: checks.length - fieldFailures.length, total: checks.length, dataset: `${checks.length} proposed fields against the human-reviewed ruleset`, failures: fieldFailures },
+  ];
+}
+
 const lines: string[] = [
   "# Evaluation results",
   "",
@@ -111,12 +128,12 @@ const lines: string[] = [
   "",
   `Engine ${ENGINE_VERSION}; demo fixture ${DEMO_FIXTURE_VERSION}; Arogya Sanjeevani fixture ${NIA_FIXTURE_VERSION}. Fixtures authored ${FIXTURE_REVIEW.authoredOn} by ${FIXTURE_REVIEW.authoredBy}. Human review: ${FIXTURE_REVIEW.humanReview}.`,
   "",
-  "Two datasets: the synthetic demo wording, and the ten encoded clauses of one real wording (Arogya Sanjeevani, The New India Assurance Co. Ltd., UIN NIAHLIP20165V011920, hosted by IRDAI). The real-wording numbers cover only those ten clauses, with a synthetic schedule and estimate; they say nothing about the rest of that policy or about other insurers.",
+  "Two datasets: the synthetic demo wording, and the ten encoded clauses of one real wording (Arogya Sanjeevani, The New India Assurance Co. Ltd., UIN NIAHLIP20165V011920, hosted by IRDAI). The real-wording numbers cover only those ten clauses, with a synthetic schedule and estimate; they say nothing about the rest of that policy or about other insurers. The LLM proposal measures use CACHED proposals written by the build session offline, not an API run; the live adapter was not exercised.",
   "",
 ];
 const allFailures: string[] = [];
 for (const d of DATASETS) {
-  const measures = [retrieval(d), extraction(d), calculation(d), refusal(d)];
+  const measures = [retrieval(d), extraction(d), calculation(d), refusal(d), ...proposalMeasures(d)];
   lines.push(`## ${d.label}`, "", "| Measure | Result | Dataset |", "|---|---|---|", ...measures.map((m) => `| ${m.name} | **${m.passed} of ${m.total}** | ${m.dataset} |`), "");
   allFailures.push(...measures.flatMap((m) => m.failures.map((f) => `- ${d.label}, ${m.name}: ${f}`)));
 }
