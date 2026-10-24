@@ -2,11 +2,12 @@
 
 import { useId } from "react";
 import { rupees } from "@/engine/money";
-import type { CaseInputs, SimulationResult, UserClassification } from "@/engine/types";
+import type { CaseInputs, Provenance, SimulationResult, UserClassification } from "@/engine/types";
 import { type Action, type AppState, DEMO_VARIANTS } from "@/model";
 import { Amount } from "../amounts";
 import { IssuerBadge, ProvenanceBadge, StateBadge } from "../badges";
 import { issuerLabel, money } from "../format";
+import { UploadSection } from "../upload-section";
 
 interface Props {
   state: AppState;
@@ -45,6 +46,8 @@ export function InputReviewScreen({ state, inputs, result, dispatch }: Props) {
   const daysId = useId();
   const { ruleset, schedule, estimate } = inputs;
   const confirmed = state.confirmations.hospitalFollowsDifferentialBilling;
+  // Hospital, procedure, room days and room options come from the demo unless a full estimate was uploaded.
+  const estimateMetaProvenance: Provenance = state.uploads.estimate?.kind === "full" ? "upload" : "fixture";
   const dbValue = confirmed === undefined ? "" : confirmed ? "yes" : "no";
 
   return (
@@ -73,6 +76,8 @@ export function InputReviewScreen({ state, inputs, result, dispatch }: Props) {
           })}
         </div>
       </Section>
+
+      <UploadSection uploads={state.uploads} errors={state.uploadErrors} dispatch={dispatch} />
 
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
         <Section title="Policy wording">
@@ -153,7 +158,7 @@ export function InputReviewScreen({ state, inputs, result, dispatch }: Props) {
 
       <Section title="Hospital estimate" blurb="Line items as supplied. Room rent is derived from the room you pick, so it is not a line here.">
         <Field label="Hospital">
-          {estimate.hospitalLabel} <ProvenanceBadge provenance={estimate.provenance} />
+          {estimate.hospitalLabel} <ProvenanceBadge provenance={estimateMetaProvenance} />
         </Field>
         <Field label="Procedure">{estimate.procedureLabel}</Field>
         <Field label="Room days">
@@ -171,7 +176,7 @@ export function InputReviewScreen({ state, inputs, result, dispatch }: Props) {
             }}
             className="h-9 w-24 rounded-lg border border-stone-300 bg-white px-2 text-sm tabular-nums focus:outline-none focus:ring-2 focus:ring-stone-900"
           />
-          <ProvenanceBadge provenance={state.edits.roomDays !== undefined ? "userEntered" : estimate.provenance} />
+          <ProvenanceBadge provenance={state.edits.roomDays !== undefined ? "userEntered" : estimateMetaProvenance} />
         </Field>
         <Field label="Hospital follows differential billing by room category">
           <span className="text-xs text-stone-500">

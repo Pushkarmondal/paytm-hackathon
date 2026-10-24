@@ -11,7 +11,7 @@ import {
   scenarioFor,
   stateLabel,
 } from "@/model";
-import { ROOM_DELUXE, ROOM_SINGLE, ROOM_TWIN, SCENARIO_SINGLE, demoInputs } from "@/fixtures/demo-policy";
+import { DEMO_ESTIMATE, DEMO_RULESET, DEMO_SCHEDULE, ROOM_DELUXE, ROOM_SINGLE, ROOM_TWIN, SCENARIO_SINGLE, demoInputs } from "@/fixtures/demo-policy";
 
 describe("app state: the demo opens ready, and every edit is a reducer action", () => {
   it("opens on the overview with the single private room planned and twin-sharing as the comparison", () => {
@@ -152,5 +152,61 @@ describe("stateLabel: the five states have plain words", () => {
     expect(stateLabel("excluded")).toBe("Not subject to deduction");
     expect(stateLabel("requiresInsurerConfirmation")).toBe("Requires insurer confirmation");
     expect(stateLabel("reviewRequired")).toBe("Review required");
+  });
+});
+
+describe("uploads override the demo documents", () => {
+  it("replaces the estimate's line items with uploaded CSV items, keeping the demo room options, with upload provenance", () => {
+    const s = reduce(initialState(), {
+      type: "uploadEstimateItems",
+      items: [{ itemId: "line-1", label: "Nursing", category: "nursing", amount: rupees(4_000) }],
+      fileName: "bill.csv",
+      warnings: ["line 2: something"],
+    });
+    const inputs = buildInputs(s);
+    expect(inputs.estimate.items).toHaveLength(1);
+    expect(inputs.estimate.provenance).toBe("upload");
+    expect(inputs.estimate.roomOptions).toHaveLength(3);
+    expect(s.uploads.estimate?.fileName).toBe("bill.csv");
+    expect(s.uploads.estimate?.warnings).toEqual(["line 2: something"]);
+  });
+
+  it("replaces the whole estimate from JSON and re-targets both room choices to its options", () => {
+    const estimate = {
+      ...DEMO_ESTIMATE,
+      estimateId: "X",
+      roomOptions: [
+        { roomId: "r1", label: "R1", ratePerDay: rupees(3_000) },
+        { roomId: "r2", label: "R2", ratePerDay: rupees(9_000) },
+      ],
+    };
+    const s = reduce(initialState(), { type: "uploadEstimate", estimate, fileName: "est.json", warnings: [] });
+    expect(s.plannedRoom).toEqual({ roomId: "r2" });
+    expect(s.comparisonRoom).toEqual({ roomId: "r1" });
+    expect(buildInputs(s).estimate.estimateId).toBe("X");
+  });
+
+  it("replaces the ruleset and the schedule, and an upload wins over the demo variant", () => {
+    let s = reduce(initialState(), { type: "setVariant", variant: "scheduleMissing" });
+    s = reduce(s, { type: "uploadSchedule", schedule: { ...DEMO_SCHEDULE, scheduleId: "UP-1", provenance: "upload" }, fileName: "s.json", warnings: [] });
+    expect(buildInputs(s).schedule?.scheduleId).toBe("UP-1");
+    s = reduce(s, { type: "uploadRuleset", ruleset: { ...DEMO_RULESET, fixtureVersion: "up" }, fileName: "r.json", warnings: [] });
+    expect(buildInputs(s).ruleset.fixtureVersion).toBe("up");
+  });
+
+  it("records a failed upload as a message and keeps the previous document", () => {
+    let s = reduce(initialState(), { type: "uploadFailed", target: "ruleset", fileName: "bad.json", message: "not json" });
+    expect(s.uploads.ruleset).toBeUndefined();
+    expect(s.uploadErrors.ruleset).toEqual({ fileName: "bad.json", message: "not json" });
+    s = reduce(s, { type: "clearUploads" });
+    expect(s.uploads).toEqual({});
+    expect(s.uploadErrors).toEqual({});
+  });
+
+  it("a successful upload clears the error for that document, and reset clears everything", () => {
+    let s = reduce(initialState(), { type: "uploadFailed", target: "schedule", fileName: "bad.json", message: "x" });
+    s = reduce(s, { type: "uploadSchedule", schedule: DEMO_SCHEDULE, fileName: "ok.json", warnings: [] });
+    expect(s.uploadErrors.schedule).toBeUndefined();
+    expect(reduce(s, { type: "reset" })).toEqual(initialState());
   });
 });
