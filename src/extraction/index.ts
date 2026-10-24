@@ -10,20 +10,28 @@ import type { BillCategory, Clause, LimitBasis, RuleCondition } from "@/engine/t
 export interface ExtractedRules {
   roomLimit?: { clauseId: string; basis: LimitBasis };
   icuLimit?: { clauseId: string; basis: LimitBasis };
-  proportionateDeduction?: { clauseId: string; conditions: RuleCondition["conditionId"][] };
+  proportionateDeduction?: { clauseId: string; conditions: RuleCondition["conditionId"][]; triggers: ("room" | "icu")[] };
   itemClasses?: { clauseId: string; included: BillCategory[]; excluded: BillCategory[] };
+  copay?: { clauseId: string; percent: number };
   sumInsuredCap?: { clauseId: string };
 }
 
-const PERCENT_PER_DAY = /(\d+(?:\.\d+)?)\s*%\s*of\s*(?:the\s+)?sum\s+insured\s+per\s+day/i;
-const FIXED_PER_DAY = /(?:rs\.?|₹|inr)\s*([\d,]+(?:\.\d{1,2})?)\s*per\s+day/i;
+const PERCENT_OF_SI = /(\d+(?:\.\d+)?)\s*%\s*of\s*(?:the\s+)?sum\s+insured/i;
+const PER_DAY = /per\s+day/i;
+const CAP_PER_DAY = /subject\s+to\s+(?:a\s+)?maximum\s+of\s+(?:rs\.?|₹|inr)\s*([\d,]+(?:\.\d{1,2})?)\s*\/?-?\s*,?\s*per\s+day/i;
+const FIXED_PER_DAY = /(?:rs\.?|₹|inr)\s*([\d,]+(?:\.\d{1,2})?)\s*\/?-?\s*,?\s*per\s+day/i;
 const ROOM = /room\s+rent/i;
 const ICU = /\bicu\b|intensive\s+care/i;
 const PROPORTION = /same\s+proportion|in\s+proportion\s+to|proportionately\s+reduc/i;
 const DIFFERENTIAL = /differential\s+billing/i;
 const DEFINITION = /associated\s+medical\s+expenses?\s+means/i;
 const EXCLUSION_SPLIT = /do(?:es)?\s+not\s+include/i;
-const CAP = /shall\s+not\s+exceed\s+the\s+sum\s+insured/i;
+const ALL_OTHER = /all\s+other\s+expenses/i;
+const EXCEPTION = /with\s+the\s+exception\s+of\s+(.+?)(?:,|\.|\s+shall)/i;
+const COPAY = /co-?\s?payment\s+of\s+(\d+(?:\.\d+)?)\s*%/i;
+const CAP = /shall\s+not\s+exceed\s+the\s+sum\s+insured|maximum\s+liability\s+of\s+the\s+company[^.]*shall\s+be\s+the\s+sum\s+insured/i;
+
+const ALL_CATEGORIES: BillCategory[] = ["nursing", "surgeonFees", "anaesthetistFees", "consultantFees", "operationTheatre", "implant", "pharmacyConsumables", "diagnostics", "physiotherapy", "hospitalAdmin"];
 
 const CATEGORY_PATTERNS: [RegExp, BillCategory][] = [
   [/nursing/i, "nursing"],
@@ -38,14 +46,24 @@ const CATEGORY_PATTERNS: [RegExp, BillCategory][] = [
   [/physiotherapy/i, "physiotherapy"],
 ];
 
+function rupeesText(text: string): number | null {
+  const [whole, frac = ""] = text.replace(/,/g, "").split(".");
+  const amount = Number(whole) * 100 + Number(frac.padEnd(2, "0") || "0");
+  return Number.isSafeInteger(amount) ? amount : null;
+}
+
 function limitBasis(text: string): LimitBasis | null {
-  const pct = PERCENT_PER_DAY.exec(text);
-  if (pct) return { kind: "percentOfSumInsuredPerDay", percent: Number(pct[1]) };
+  if (!PER_DAY.test(text)) return null;
+  const pct = PERCENT_OF_SI.exec(text);
+  if (pct) {
+    const cap = CAP_PER_DAY.exec(text);
+    const capAmount = cap ? rupeesText(cap[1]) : null;
+    return capAmount !== null ? { kind: "percentOfSumInsuredPerDay", percent: Number(pct[1]), capPerDay: paise(capAmount) } : { kind: "percentOfSumInsuredPerDay", percent: Number(pct[1]) };
+  }
   const fixed = FIXED_PER_DAY.exec(text);
   if (fixed) {
-    const [whole, frac = ""] = fixed[1].replace(/,/g, "").split(".");
-    const amount = Number(whole) * 100 + Number(frac.padEnd(2, "0") || "0");
-    if (Number.isSafeInteger(amount)) return { kind: "fixedPerDay", amount: paise(amount) };
+    const amount = rupeesText(fixed[1]);
+    if (amount !== null) return { kind: "fixedPerDay", amount: paise(amount) };
   }
   return null;
 }
@@ -69,11 +87,24 @@ export function extractRules(clauses: readonly Clause[]): ExtractedRules {
       out.roomLimit = { clauseId: clause.id, basis };
     }
     if (PROPORTION.test(text) && !out.proportionateDeduction) {
-      out.proportionateDeduction = { clauseId: clause.id, conditions: DIFFERENTIAL.test(text) ? ["hospitalFollowsDifferentialBilling"] : [] };
+      out.proportionateDeduction = {
+        clauseId: clause.id,
+        conditions: DIFFERENTIAL.test(text) ? ["hospitalFollowsDifferentialBilling"] : [],
+        triggers: ICU.test(text) ? ["room", "icu"] : ["room"],
+      };
+      if (ALL_OTHER.test(text) && !out.itemClasses) {
+        const exception = EXCEPTION.exec(text);
+        const excluded = exception ? categoriesIn(exception[1].replace(/medicines?/i, "pharmacy")) : [];
+        out.itemClasses = { clauseId: clause.id, included: ALL_CATEGORIES.filter((c) => !excluded.includes(c)), excluded };
+      }
     }
     if (DEFINITION.test(text) && !out.itemClasses) {
       const [includedText, excludedText = ""] = text.split(EXCLUSION_SPLIT);
       out.itemClasses = { clauseId: clause.id, included: categoriesIn(includedText), excluded: categoriesIn(excludedText) };
+    }
+    const copay = COPAY.exec(text);
+    if (copay && !out.copay) {
+      out.copay = { clauseId: clause.id, percent: Number(copay[1]) };
     }
     if (CAP.test(text) && !out.sumInsuredCap) {
       out.sumInsuredCap = { clauseId: clause.id };
