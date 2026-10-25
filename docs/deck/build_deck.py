@@ -213,7 +213,7 @@ B["problem"] = lambda: f'''
         <div class="row"><span>Anaesthetist ₹15,000</span><div class="track"><div class="fill" style="width:17%; background:#D97706;"></div></div><span>₹5,000</span></div>
         <div class="row"><span>Nursing ₹4,000</span><div class="track"><div class="fill" style="width:5%; background:#D97706;"></div></div><span>₹1,333</span></div>
       </div>
-      <p class="note" style="margin-top:6px;">Worked example on a synthetic policy and estimate, computed by the prototype and checked by hand (appendix, slide {P("audit")}). Not a market statistic.</p>
+      <p class="note" style="margin-top:6px;">Worked example on a synthetic policy and estimate, computed by the prototype and checked by hand in docs/deck/CALCULATION-AUDIT.md (section "Synthetic wording"). Not a market statistic.</p>
     </div>
     <div style="display:grid; gap:22px;">
       <div class="bigstat">₹2,500 <span style="font-size:20px; font-weight:500; color:#6F675F;">a day</span><small>the room-rent gap: ₹7,500 chosen against ₹5,000 eligible</small></div>
