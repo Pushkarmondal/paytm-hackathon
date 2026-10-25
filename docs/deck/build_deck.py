@@ -137,7 +137,7 @@ ORDER = [
     ("cover", None, False), ("problem", 1, False), ("solution", 2, False), ("moment", 2, False), ("evidence", 3, False),
     ("real", 3, False), ("technology", 4, False), ("usp", 5, False), ("impact", 6, False), ("business", 7, False), ("closing", None, False),
     ("appendix", None, True), ("map", None, True), ("classes", None, True), ("hospitalfact", None, True), ("unknown", None, True),
-    ("builder", None, True), ("documents", None, True), ("decide", None, True), ("why", None, True), ("guarantees", None, True), ("audit", None, True),
+    ("builder", None, True), ("documents", None, True), ("decide", None, True), ("why", None, True), ("guarantees", None, True), ("audit", None, True), ("regulatory", None, True),
 ]
 PAGE = {sid: i + 1 for i, (sid, _, _) in enumerate(ORDER)}
 SECTION = {sid: sec for sid, sec, _ in ORDER}
@@ -293,10 +293,10 @@ B["real"] = lambda: f'''
 <section class="slide" id="real">
   <div class="kicker">03 · Proof · a real wording</div>
   <h1>The same engine on a real wording, honestly</h1>
-  <div class="two" style="grid-template-columns: 440px 1fr; margin-top: 18px;">
+  <div class="two" style="grid-template-columns: 480px 1fr; margin-top: 18px;">
     <div>
-      {img("twin-nia-ame", 440)}
-      <p class="cap">Arogya Sanjeevani, New India, UIN NIAHLIP20165V011920, from <a class="link" href="{IRDAI_URL}">the regulator's copy</a>: ten clauses verbatim, page-cited, SHA-256 on screen; partially encoded, synthetic schedule; every figure hand-checked on slide {P("audit")}.</p>
+      {img("twin-nia-ame", 480)}
+      <p class="cap">Arogya Sanjeevani, New India, UIN NIAHLIP20165V011920, from <a class="link" href="{IRDAI_URL}">the regulator's copy</a>: ten clauses verbatim, page-cited, SHA-256 on screen; partially encoded, synthetic schedule. Every figure is hand-checked on slide {P("audit")}.</p>
     </div>
     <div class="stack">
       <div class="tile"><div class="h3">Capped percentage limits, 4.1(a) and 4.1(b)</div><p>Room 2% of the sum insured up to ₹5,000 a day; ICU 5% up to ₹10,000. For each category the applicable daily limit is the lower of the percentage-of-sum-insured amount and the stated daily cap; the trace shows both.</p></div>
@@ -305,7 +305,7 @@ B["real"] = lambda: f'''
     </div>
   </div>
   <div class="regnote" style="margin-top:12px;">
-    <p><b>Implants and diagnostics: a potential conflict with later norms, not a legal conclusion.</b> Note (b) reduces "all other expenses … with the exception of cost of medicines", which reaches implants and diagnostics. IRDAI's circular IRDAI/HLT/REG/CIR/151/06/2020 of 11 June 2020 says in clause 4 that pharmacy and consumables, implants and medical devices, and diagnostics "are not allowed to be part of the definition of 'associate medical expenses'", in clause 7 that no proportionate deduction may be applied to ICU charges, and in clause 8 that it applies to products filed from 1 October 2020 and to existing contracts at renewal from 1 April 2021. The Master Circular of 29 May 2024 supersedes it (Annexure-6, item 19); whether the norm continues is not verified here. The insurer's current customer information sheet (UIN NIAHLIP25044V022425, w.e.f. 1 October 2024, read 25 October 2026) carries the same Note (b) sentence; this demo encodes the 2019-20 filing as a version-sensitivity test, not a statement about any current contract. So the engine shows implants and diagnostics as ₹0 to ₹40,000 and ₹0 to ₹4,000, "requires insurer confirmation", and the question sheet asks the insurer in writing.</p>
+    <p><b>Implants and diagnostics: a potential conflict with later norms, not a legal conclusion.</b> IRDAI's circular IRDAI/HLT/REG/CIR/151/06/2020 of 11 June 2020 (clauses 4, 7 and 8) later kept implants, devices, diagnostics, pharmacy and consumables out of proportionate deduction for filings from 1 October 2020; the insurer's current sheet (UIN NIAHLIP25044V022425) keeps the same Note (b) sentence. Unverified either way, so the engine shows ₹0 to ₹40,000 and ₹0 to ₹4,000, "requires insurer confirmation", and the question sheet asks the insurer in writing. The full note, with the clauses quoted: appendix, slide {P("regulatory")}.</p>
   </div>
   {footer("real")}
 </section>'''
@@ -460,6 +460,7 @@ B["appendix"] = lambda: f'''
     <a href="#why"><span class="num">{P("why"):02d}</span><span class="t">Why it changed; the evidence pack</span><span class="d">Per-rule diffs and verbatim lines from the export</span></a>
     <a href="#guarantees"><span class="num">{P("guarantees"):02d}</span><span class="t">Engineering guarantees</span><span class="d">The engine's result and uncertainty types, verbatim</span></a>
     <a href="#audit"><span class="num">{P("audit"):02d}</span><span class="t">Calculation audit</span><span class="d">Every real-wording figure derived by hand from the clauses</span></a>
+    <a href="#regulatory"><span class="num">{P("regulatory"):02d}</span><span class="t">The regulatory note in full</span><span class="d">The 2020 circular quoted, the current UIN, what is and is not verified</span></a>
   </div>
   {footer("appendix", "Claim Sach · Coverage Twin")}
 </section>'''
@@ -739,6 +740,32 @@ def build_audit():
 
 
 B["audit"] = build_audit
+
+B["regulatory"] = lambda: f'''
+<section class="slide" id="regulatory">
+  <div class="kicker">Appendix · the regulatory note in full · a potential conflict, not a legal conclusion</div>
+  <h1>The circular, the two wordings, and what is verified</h1>
+  <div class="two" style="grid-template-columns: 1fr 1fr; gap: 28px; margin-top: 18px;">
+    <div class="stack">
+      <div class="tile amber" style="padding:14px 18px;">
+        <div class="h3">IRDAI, "Norms on Proportionate Deductions", Ref IRDAI/HLT/REG/CIR/151/06/2020, 11 June 2020</div>
+        <p style="font-size:12px;">Read from irdai.gov.in on 24 October 2026; text extracted from a scanned PDF, OCR artefacts removed.</p>
+        <p style="font-size:12.5px; margin-top:8px;"><b>Clause 4.</b> "The following expenses are not allowed to be part of the definition of 'associate medical expenses'. a. Cost of pharmacy and consumables; b. Cost of implants and medical devices c. Cost of diagnostics"</p>
+        <p style="font-size:12.5px; margin-top:6px;"><b>Clause 6.</b> "Insurers shall ensure that proportionate deductions are not applied in respect of the hospitals which do not follow differential billing or for those expenses in respect of which differential billing is not adopted based on the room category."</p>
+        <p style="font-size:12.5px; margin-top:6px;"><b>Clause 7.</b> "Insurers are not permitted to apply proportionate deduction for 'ICU charges' as different categories of ICU are not there."</p>
+        <p style="font-size:12px; margin-top:6px;"><b>Clause 8.</b> Products filed "on or after 01st October, 2020"; existing contracts "modified as and when they are due for renewal from 01st April, 2021 onwards."</p>
+      </div>
+      <div class="tile" style="padding:14px 18px;"><div class="h3">Superseded</div><p style="font-size:12px;">The Master Circular on Health Insurance Business, Ref IRDAI/HLT/CIR/PRO/84/5/2024, 29 May 2024, supersedes the circulars in its Annexure-6; item 19 is this one. Whether the norm continues under the 2024 regime is not verified here.</p></div>
+    </div>
+    <div class="stack">
+      <div class="tile" style="padding:14px 18px;"><div class="h3">The 2019-20 wording this demo encodes</div><p style="font-size:12px;">UIN NIAHLIP20165V011920, page 7, Note (b): "all other expenses incurred at the Hospital, with the exception of cost of medicines, shall be effected in the same proportion as the admissible rate per day bears to the actual rate per day of Room Rent/ICU/ICCU charges." On its face that reaches implants and diagnostics.</p></div>
+      <div class="tile sky" style="padding:14px 18px;"><div class="h3">The insurer's current sheet</div><p style="font-size:12px;">"Customer Information Sheet AROGYA SANJEEVANI POLICY, master w.e.f. 01 10 2024", newindia.co.in, read 25 October 2026: UIN NIAHLIP25044V022425 on every page, the same Note (b) sentence, and a note that the policy document prevails. The full current wording was not fetched, encoded or verified.</p></div>
+      <div class="tile green" style="padding:14px 18px;"><div class="h3">What the engine does with this</div><p style="font-size:12px;">Implants and diagnostics carry the caveat WORDING_PREDATES_2020_NORMS: ₹0 (reduction not applied) to the full proportion, "requires insurer confirmation", and a written question on the question sheet; totals bounded over the joint outcomes (slide {P("audit")}).</p></div>
+      <div class="tile" style="padding:14px 18px;"><div class="h3">Not verified, and not claimed</div><p style="font-size:12px;">How the insurer settles this item under either version; whether a given contract was modified at renewal; any other insurer's wording. Each ruleset is verified against the exact insurer, UIN, wording and version before use.</p></div>
+    </div>
+  </div>
+  {footer("regulatory")}
+</section>'''
 
 html = f'''<!doctype html>
 <html lang="en">
