@@ -11,8 +11,13 @@ import sys
 out_path, IMG, FONT = sys.argv[1], sys.argv[2], sys.argv[3]
 
 CSS = r"""
-  @font-face { font-family: "Geist"; src: url("__FONT__geist-sans/Geist-Variable.woff2") format("woff2"); font-weight: 100 900; }
-  @font-face { font-family: "Geist Mono"; src: url("__FONT__geist-mono/GeistMono-Variable.woff2") format("woff2"); font-weight: 100 900; }
+  @font-face { font-family: "Geist"; src: url("__FONT__geist-sans/Geist-Regular.woff2") format("woff2"); font-weight: 400; font-style: normal; }
+  @font-face { font-family: "Geist"; src: url("__FONT__geist-sans/Geist-Italic.woff2") format("woff2"); font-weight: 400; font-style: italic; }
+  @font-face { font-family: "Geist"; src: url("__FONT__geist-sans/Geist-Medium.woff2") format("woff2"); font-weight: 500; font-style: normal; }
+  @font-face { font-family: "Geist"; src: url("__FONT__geist-sans/Geist-SemiBold.woff2") format("woff2"); font-weight: 600; font-style: normal; }
+  @font-face { font-family: "Geist"; src: url("__FONT__geist-sans/Geist-Bold.woff2") format("woff2"); font-weight: 700; font-style: normal; }
+  @font-face { font-family: "Geist Mono"; src: url("__FONT__geist-mono/GeistMono-Regular.woff2") format("woff2"); font-weight: 400; font-style: normal; }
+  @font-face { font-family: "Geist Mono"; src: url("__FONT__geist-mono/GeistMono-Medium.woff2") format("woff2"); font-weight: 500; font-style: normal; }
   @page { size: 1280px 720px; margin: 0; }
   * { box-sizing: border-box; margin: 0; padding: 0; }
   html, body { width: 1280px; }
