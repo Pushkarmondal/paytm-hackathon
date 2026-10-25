@@ -3,7 +3,7 @@
  * Assurance Co. Ltd. (UIN NIAHLIP20165V011920), IRDAI-hosted.
  *
  * Expected values were computed by hand before running the measures.
- * Authored: 24 October 2026, by the build session (Claude).
+ * Authored: 24 October 2026, by the build session (Claude); joint conditional bounds added 25 October 2026.
  * Human review by Pushkar Mondal: pending.
  */
 
@@ -64,6 +64,8 @@ export const CALCULATION_CASES_NIA: CalculationCase[] = [
       { field: "calculatedDeductions", expected: rupees(45_000), read: (r) => r.totals.calculatedDeductions },
       { field: "copayLow", expected: rupees(9_800), read: (r) => r.copay.range?.low },
       { field: "copayHigh", expected: rupees(13_325), read: (r) => r.copay.range?.high },
+      { field: "conditionalLow", expected: rupees(12_000), read: (r) => r.totals.conditionalDeductions?.low },
+      { field: "conditionalHigh", expected: rupees(55_125), read: (r) => r.totals.conditionalDeductions?.high },
       { field: "unclassified", expected: rupees(26_500), read: (r) => r.totals.unclassifiedAmount },
     ],
   },
@@ -77,6 +79,8 @@ export const CALCULATION_CASES_NIA: CalculationCase[] = [
       { field: "calculatedDeductions", expected: rupees(55_000), read: (r) => r.totals.calculatedDeductions },
       { field: "copayLow", expected: rupees(9_900), read: (r) => r.copay.range?.low },
       { field: "copayHigh", expected: rupees(13_425), read: (r) => r.copay.range?.high },
+      { field: "conditionalLow", expected: rupees(12_100), read: (r) => r.totals.conditionalDeductions?.low },
+      { field: "conditionalHigh", expected: rupees(55_225), read: (r) => r.totals.conditionalDeductions?.high },
     ],
   },
   {
@@ -88,6 +92,10 @@ export const CALCULATION_CASES_NIA: CalculationCase[] = [
       { field: "surgeonLow", expected: rupees(20_000), read: (r) => r.items.find((i) => i.itemId === "surgeon")?.deduction.range?.low },
       { field: "surgeonHigh", expected: rupees(35_000), read: (r) => itemHigh(r, "surgeon") },
       { field: "surgeonValue", expected: null, read: (r) => item(r, "surgeon") ?? null },
+      { field: "copayLow", expected: rupees(6_750), read: (r) => r.copay.range?.low },
+      { field: "copayHigh", expected: rupees(13_425), read: (r) => r.copay.range?.high },
+      { field: "conditionalLow", expected: rupees(52_100), read: (r) => r.totals.conditionalDeductions?.low },
+      { field: "conditionalHigh", expected: rupees(155_075), read: (r) => r.totals.conditionalDeductions?.high },
     ],
   },
 ];

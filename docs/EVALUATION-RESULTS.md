@@ -21,7 +21,7 @@ Two datasets: the synthetic demo wording, and the ten encoded clauses of one rea
 |---|---|---|
 | Clause retrieval accuracy (top-1) | **10 of 12** | 12 questions over the Arogya Sanjeevani, New India (10 encoded clauses of a real wording) |
 | Rule extraction accuracy (field-level) | **10 of 12** | 12 rule fields of the Arogya Sanjeevani, New India (10 encoded clauses of a real wording), against the reviewed ruleset |
-| Calculation correctness (exact match in paise) | **3 of 3** | 3 scenarios, 21 expected amounts (21 matched), hand-computed, on the Arogya Sanjeevani, New India (10 encoded clauses of a real wording) |
+| Calculation correctness (exact match in paise) | **3 of 3** | 3 scenarios, 29 expected amounts (29 matched), hand-computed, on the Arogya Sanjeevani, New India (10 encoded clauses of a real wording) |
 | Uncertainty and refusal quality | **3 of 3** | 3 cases with an expected state, values that must stay unknown, and expected reasons, on the Arogya Sanjeevani, New India (10 encoded clauses of a real wording) |
 | LLM proposals: quotes verified verbatim (cached) | **6 of 6** | 6 cached proposals (claude-fable-5-1 (build session, offline; not an API call); not an API run) |
 | LLM proposals: field agreement with the reviewed ruleset (cached) | **11 of 13** | 13 proposed fields against the human-reviewed ruleset |

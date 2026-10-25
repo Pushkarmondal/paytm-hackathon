@@ -15,14 +15,35 @@ import type {
   Trace,
   TraceInput,
   TraceOutput,
+  UncertaintyCode,
   UncertaintyReason,
 } from "./types";
+
+/** One way an open question could be settled. */
+export interface WorldOutcome {
+  code: UncertaintyCode;
+  label: string;
+}
+
+/** One joint outcome of every open question the deduction depends on, with the deduction it implies per item. */
+export interface DeductionWorld {
+  outcomes: WorldOutcome[];
+  itemDeductions: Record<string, Money>;
+}
 
 export interface DeductionEvaluation {
   rule: DeductionRuleResult;
   items: ItemResult[];
   uncertainties: UncertaintyReason[];
+  /** Component-wise bounds over the conditional items. For joint bounds with the co-payment, use `worlds`. */
   conditionalTotal: Range | null;
+  /** Every jointly possible outcome of the open questions (differential billing, ambiguous ratio, caveats). One world when nothing is open. */
+  worlds: DeductionWorld[];
+}
+
+/** Cartesian product of the outcomes of several independent open questions. */
+export function product<T>(dims: T[][]): T[][] {
+  return dims.reduce<T[][]>((acc, outcomes) => acc.flatMap((prefix) => outcomes.map((o) => [...prefix, o])), [[]]);
 }
 
 export interface DeductionArgs {
@@ -125,7 +146,11 @@ export function evaluateDeduction(args: DeductionArgs): DeductionEvaluation {
   const unclassified = unclassifiedReason(args.items, args.ruleset);
   if (unclassified) uncertainties.push(unclassified);
 
-  const finish = (ruleResult: DeductionRuleResult, includedResult: (item: ClassifiedItem) => ItemResult): DeductionEvaluation => {
+  const finish = (
+    ruleResult: DeductionRuleResult,
+    includedResult: (item: ClassifiedItem) => ItemResult,
+    worldsFor?: (items: ItemResult[]) => DeductionWorld[],
+  ): DeductionEvaluation => {
     const items = args.items.map((item) => {
       switch (item.classification) {
         case "includedInDeduction":
@@ -146,7 +171,10 @@ export function evaluateDeduction(args: DeductionArgs): DeductionEvaluation {
           basis: Array.from(new Set(conditional.map((i) => i.deduction.range!.basis))).join(" | "),
         }
       : null;
-    return { rule: ruleResult, items, uncertainties, conditionalTotal };
+    const worlds = worldsFor
+      ? worldsFor(items)
+      : [{ outcomes: [], itemDeductions: Object.fromEntries(items.map((i) => [i.itemId, i.deduction.value ?? ZERO])) }];
+    return { rule: ruleResult, items, uncertainties, conditionalTotal, worlds };
   };
 
   if (!rule) {
@@ -337,6 +365,52 @@ export function evaluateDeduction(args: DeductionArgs): DeductionEvaluation {
     trace: ruleTrace(ratioInput(), totalFormula, "deduction.itemTimesOneMinusRatio", totalOutput, reasons),
   };
 
+  // The open questions, each with its finite outcomes, so that totals can be taken over jointly possible worlds.
+  type Dim = { code: UncertaintyCode; outcomes: { label: string; apply?: boolean; ratio?: Ratio; caveat?: { code: string; applies: boolean } }[] };
+  const dims: Dim[] = [];
+  if (condition.established === null) {
+    dims.push({
+      code: "DIFFERENTIAL_BILLING_NOT_ESTABLISHED",
+      outcomes: [
+        { label: `the hospital does not bill by room category, so ${rule.source.clauseId} does not apply`, apply: false },
+        { label: `the hospital bills by room category, so ${rule.source.clauseId} applies`, apply: true },
+      ],
+    });
+  }
+  if (ambiguous) {
+    const [room, icu] = [roomRatio as Ratio, icuRatio as Ratio];
+    const roomMilder = room.num * icu.den >= icu.num * room.den;
+    const label = (r: Ratio, kind: "room" | "icu", milder: boolean) => `the ${milder ? "milder" : "stricter"} ${kind === "room" ? "room" : "ICU"} ratio (${ratioText(r, kind)}) applies`;
+    dims.push({
+      code: "RATIO_AMBIGUOUS_ROOM_AND_ICU",
+      outcomes: roomMilder
+        ? [{ label: label(room, "room", true), ratio: room }, { label: label(icu, "icu", false), ratio: icu }]
+        : [{ label: label(icu, "icu", true), ratio: icu }, { label: label(room, "room", false), ratio: room }],
+    });
+  }
+  for (const [code, reason] of caveatReasons) {
+    const labels = included.filter((i) => reason.affectedItemIds.includes(i.itemId)).map((i) => i.label).join(" and ");
+    dims.push({
+      code: code as UncertaintyCode,
+      outcomes: [
+        { label: `the insurer does not apply the reduction to ${labels}`, caveat: { code, applies: false } },
+        { label: `the insurer applies the reduction to ${labels}`, caveat: { code, applies: true } },
+      ],
+    });
+  }
+  const worldsFor = (): DeductionWorld[] =>
+    product(dims.map((d) => d.outcomes.map((o) => ({ ...o, code: d.code })))).map((combo) => {
+      const apply = combo.every((o) => o.apply !== false);
+      const r = combo.find((o) => o.ratio)?.ratio ?? keep ?? ratios[0];
+      const caveatOff = new Set(combo.filter((o) => o.caveat && !o.caveat.applies).map((o) => o.caveat!.code));
+      const itemDeductions: Record<string, Money> = {};
+      for (const item of included) {
+        const off = caveatsFor(args.ruleset, item).some((c) => caveatOff.has(c.code));
+        itemDeductions[item.itemId] = apply && !off ? mulRatio(item.amount, oneMinus(r)) : ZERO;
+      }
+      return { outcomes: combo.map((o) => ({ code: o.code, label: o.label })), itemDeductions };
+    });
+
   return finish(ruleResult, (item) => {
     const b = bounds(item);
     const itemCaveats = caveatsFor(args.ruleset, item);
@@ -354,5 +428,5 @@ export function evaluateDeduction(args: DeductionArgs): DeductionEvaluation {
     const range: Range = { low, high: b.high, basis: basisParts.join(" | ") };
     const formula = `deduction = ${formatInr(item.amount)} × (1 − ${keepText}) = up to ${formatInr(b.high, { paise: b.high % 100 !== 0 })}; between ${formatInr(low)} and ${formatInr(b.high, { paise: b.high % 100 !== 0 })} until ${assumptions.map((a) => a.code).join(", ")} resolved`;
     return withResult(item, { state: "conditional", value: null, range }, ruleTrace(inputs, formula, "deduction.itemTimesOneMinusRatio", { state: "conditional", value: null, range }, assumptions));
-  });
+  }, worldsFor);
 }
