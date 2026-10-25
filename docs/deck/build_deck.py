@@ -296,16 +296,16 @@ B["real"] = lambda: f'''
   <div class="two" style="grid-template-columns: 440px 1fr; margin-top: 18px;">
     <div>
       {img("twin-nia-ame", 440)}
-      <p class="cap">Arogya Sanjeevani, New India, UIN NIAHLIP20165V011920, from <a class="link" href="{IRDAI_URL}">the regulator's copy</a>: ten clauses verbatim, page-cited, SHA-256 on screen; figures hand-checked on slide {P("audit")}.</p>
+      <p class="cap">Arogya Sanjeevani, New India, UIN NIAHLIP20165V011920, from <a class="link" href="{IRDAI_URL}">the regulator's copy</a>: ten clauses verbatim, page-cited, SHA-256 on screen; partially encoded, synthetic schedule; every figure hand-checked on slide {P("audit")}.</p>
     </div>
     <div class="stack">
-      <div class="tile"><div class="h3">Capped percentage limits, 4.1(a) and 4.1(b)</div><p>Room 2% of the sum insured up to ₹5,000 a day; ICU 5% up to ₹10,000. The eligible rate is the lower of the two; the trace shows both. Partially encoded; the schedule is synthetic.</p></div>
-      <div class="tile sky"><div class="h3">The ICU surprise, 4.1.1 Note (b)</div><p>A ₹15,000 ICU day exceeds its cap, so Note (b) applies the proportion even in the twin-sharing room: the surgeon's ₹20,000 shows in both columns. Different room and ICU ratios give bounds, not a number.</p></div>
+      <div class="tile"><div class="h3">Capped percentage limits, 4.1(a) and 4.1(b)</div><p>Room 2% of the sum insured up to ₹5,000 a day; ICU 5% up to ₹10,000. For each category the applicable daily limit is the lower of the percentage-of-sum-insured amount and the stated daily cap; the trace shows both.</p></div>
+      <div class="tile sky"><div class="h3">The ICU surprise, 4.1.1 Note (b)</div><p>A ₹15,000 ICU day exceeds its cap, so Note (b) applies the proportion even in the twin-sharing room: the surgeon's ₹20,000 shows in both columns. Differing ratios give bounds, not a number.</p></div>
       <div class="tile"><div class="h3">Co-payment as a bounded range, 9.5</div><p>5% of the admissible amount: ₹9,900 to ₹13,425 while implants and diagnostics are open; one figure only when everything else is settled.</p></div>
     </div>
   </div>
   <div class="regnote" style="margin-top:12px;">
-    <p><b>Implants and diagnostics: a potential conflict with later norms, stated as such, not as a legal conclusion.</b> Note (b) reduces "all other expenses … with the exception of cost of medicines", which on its face reaches implants and diagnostics. IRDAI's circular Ref IRDAI/HLT/REG/CIR/151/06/2020 of 11 June 2020 (Norms on Proportionate Deductions) says in clause 4 that pharmacy and consumables, implants and medical devices, and diagnostics "are not allowed to be part of the definition of 'associate medical expenses'", in clause 7 that no proportionate deduction may be applied to ICU charges, and in clause 8 that it applies to products filed from 1 October 2020, with existing contracts to be modified at renewal from 1 April 2021. The Master Circular of 29 May 2024 supersedes it (Annexure-6, item 19); whether the norm continues, and how the insurer treats this 2019-20 wording today, is not verified here. So the engine shows implants and diagnostics as ₹0 to ₹40,000 and ₹0 to ₹4,000, "requires insurer confirmation", and the question sheet asks the insurer in writing.</p>
+    <p><b>Implants and diagnostics: a potential conflict with later norms, not a legal conclusion.</b> Note (b) reduces "all other expenses … with the exception of cost of medicines", which reaches implants and diagnostics. IRDAI's circular IRDAI/HLT/REG/CIR/151/06/2020 of 11 June 2020 says in clause 4 that pharmacy and consumables, implants and medical devices, and diagnostics "are not allowed to be part of the definition of 'associate medical expenses'", in clause 7 that no proportionate deduction may be applied to ICU charges, and in clause 8 that it applies to products filed from 1 October 2020 and to existing contracts at renewal from 1 April 2021. The Master Circular of 29 May 2024 supersedes it (Annexure-6, item 19); whether the norm continues is not verified here. The insurer's current customer information sheet (UIN NIAHLIP25044V022425, w.e.f. 1 October 2024, read 25 October 2026) carries the same Note (b) sentence; this demo encodes the 2019-20 filing as a version-sensitivity test, not a statement about any current contract. So the engine shows implants and diagnostics as ₹0 to ₹40,000 and ₹0 to ₹4,000, "requires insurer confirmation", and the question sheet asks the insurer in writing.</p>
   </div>
   {footer("real")}
 </section>'''
@@ -319,7 +319,7 @@ B["technology"] = lambda: f'''
     <div class="tile"><div class="h3">Rules engine</div><p>Pure TypeScript, no I/O, no model. Integer paise, exact ratios, one half-up rounding. A trace on every amount: rule, inputs, clause, formula, output, open assumptions. Six result states, eleven named uncertainty codes (appendix, slide {P("guarantees")}).</p></div>
     <div class="tile sky"><div class="h3">Two wordings</div><p>A synthetic demo policy, and Arogya Sanjeevani (New India, from irdai.gov.in): ten clauses quoted verbatim, page-cited, SHA-256 shown. Partially encoded and labelled so.</p></div>
     <div class="tile violet"><div class="h3">AI, in its place</div><p>The Ruleset builder: a model proposes rules with quotes; the engine verifies each quote verbatim; a person confirms. Cached proposals in this build; the live adapter is off and was not exercised. Never in the calculation path.</p></div>
-    <div class="tile"><div class="h3">Quality</div><p>Vitest, 180 tests in 18 files, written first. GitHub Actions on every pull request. Evaluation harness: six measures over two wordings, results committed and checked for staleness.</p></div>
+    <div class="tile"><div class="h3">Quality</div><p>Vitest, 181 tests in 18 files, written first. GitHub Actions on every pull request. Evaluation harness: six measures over two wordings, results committed and checked for staleness.</p></div>
     <div class="tile"><div class="h3">Runs anywhere</div><p>One command, offline on a laptop; fonts bundled; Vercel-ready. Nothing the user enters leaves the browser. No key, no account, no analytics, no database.</p></div>
   </div>
   <div class="ink" style="margin-top:18px; padding:18px 22px;">
@@ -364,7 +364,7 @@ B["impact"] = lambda: f'''
         <tbody>
           <tr><td>Clause retrieval, top-1</td><td class="r">11 of 12</td><td class="r">10 of 12</td></tr>
           <tr><td>Rule extraction, field-level</td><td class="r">10 of 10</td><td class="r">10 of 12</td></tr>
-          <tr><td>Calculations, exact paise</td><td class="r">9 of 9 · 46 amounts</td><td class="r">3 of 3 · 21 amounts</td></tr>
+          <tr><td>Calculations, exact paise</td><td class="r">9 of 9 · 46 amounts</td><td class="r">3 of 3 · 29 amounts</td></tr>
           <tr><td>Uncertainty and refusal</td><td class="r">6 of 6</td><td class="r">3 of 3</td></tr>
           <tr><td>Proposal quotes verbatim (cached)</td><td class="r">n/a</td><td class="r">6 of 6</td></tr>
           <tr><td>Proposals agree with reviewer (cached)</td><td class="r">n/a</td><td class="r">11 of 13</td></tr>
@@ -386,7 +386,7 @@ B["business"] = lambda: f'''
       <ul class="bul" style="margin-top:14px;">
         <li style="font-size:14.5px;">Paytm Insurance Broking Pvt Ltd is a Direct (Life &amp; General) broker: IRDAI Reg. No. 700, renewed 9 Feb 2026, valid to 16 Feb 2029.</li>
         <li style="font-size:14.5px;">It distributes car, two-wheeler, health, life and term policies from 18+ insurers, including Niva Bupa and Aditya Birla Health. It does not underwrite.</li>
-        <li style="font-size:14.5px;">It already offers claim assistance by phone. Arogya Sanjeevani is IRDAI's standard product on one wording; one verified encoding serves every insurer that sells it.</li>
+        <li style="font-size:14.5px;">It already offers claim assistance by phone. Arogya Sanjeevani is a standardised product, but each ruleset is verified against the exact insurer, UIN, policy wording and version before use; one reviewed encoding is a head start, never a licence.</li>
         <li style="font-size:14.5px;">FY25 turnover ₹37.1 crore, loss ₹13.2 crore (Form AOC-1), inside a ₹2,593 crore financial-services line in FY26. Insurance is a small line for Paytm today; clarity is a wedge worth testing.</li>
       </ul>
     </div>
@@ -423,7 +423,7 @@ B["closing"] = lambda: f'''
         <li style="font-size:14.5px; margin-bottom:6px;">Six screens, Coverage Twin, room ladder, question sheet, evidence pack; one command, offline.</li>
         <li style="font-size:14.5px; margin-bottom:6px;">A deterministic rules engine with a validated trace on every amount; unknown is never zero.</li>
         <li style="font-size:14.5px; margin-bottom:6px;">Two wordings: a synthetic policy and ten clauses of Arogya Sanjeevani (New India), quoted verbatim with a checksum.</li>
-        <li style="font-size:14.5px; margin-bottom:6px;">180 tests, CI on every pull request, an evaluation harness with committed results, a hand audit of every real-wording figure.</li>
+        <li style="font-size:14.5px; margin-bottom:6px;">181 tests, CI on every pull request, an evaluation harness with committed results, a hand audit of every real-wording figure over jointly possible outcomes.</li>
         <li style="font-size:14.5px; margin-bottom:6px;">The ruleset builder with cached model proposals, each quote verified verbatim, each one confirmed by a person.</li>
       </ul>
     </div>
@@ -700,7 +700,7 @@ B["guarantees"] = lambda: f'''
       <div class="tile"><div class="h3">No universal policy</div><p>Each wording is its own ruleset with its own definitions. No rule is hard-coded; no single ratio is ever applied to a whole bill.</p></div>
       <div class="tile"><div class="h3">Unknown has no Money</div><p>An unknown amount is the absence of a Money plus an uncertainty code. It cannot be added, so it cannot be totalled by accident.</p></div>
       <div class="tile"><div class="h3">Traces are validated</div><p>validateTrace checks each trace against the verbatim clauses and schedules; a tampered or misquoted trace fails. Uploaded rulesets get the same check.</p></div>
-      <div class="tile green"><div class="h3">Tests first</div><p>180 Vitest tests in 18 files, written before the code. CI runs lint, typecheck, tests, build and the evaluation harness on every pull request, and fails if the committed results are stale.</p></div>
+      <div class="tile green"><div class="h3">Tests first</div><p>181 Vitest tests in 18 files, written before the code. CI runs lint, typecheck, tests, build and the evaluation harness on every pull request, and fails if the committed results are stale.</p></div>
     </div>
   </div>
   {footer("guarantees")}
@@ -717,9 +717,9 @@ AUDIT_ROWS = [
     ("Pharmacy and consumables · hospital admin", "Note (b)", "medicines excepted, consumables not addressed · covered expense not stated", "not classified, ₹26,500 apart"),
     ("Calculated deductions", "", "10,000 + 5,000 + 1,333.33 + 20,000 + 5,000 + 11,666.67 + 2,000", "₹55,000.00"),
     ("Co-payment, low and high", "9.5", "5% × (3,23,500 − 55,000 − 44,000 − 26,500) · 5% × (3,23,500 − 55,000)", "₹9,900 · ₹13,425"),
-    ("Conditional deductions", "", "0 + 9,900 to 44,000 + 13,425", "₹9,900 to ₹57,425"),
-    ("Twin-sharing room", "", "room excess 0; ICU triggers the same 2/3: 5,000 + 13,000 + 20,000 + 5,000 + 2,000", "₹45,000 · ₹9,800 to ₹57,325"),
-    ("Deluxe room, ₹12,000", "", "ratios 5/12 and 2/3 differ: bounds × 1/3 to × 7/12; 28,000 + 5,000 calculated", "₹33,000 · ₹46,750 to ₹1,60,425"),
+    ("Conditional deductions, jointly", "", "low: no reduction, unclassified not admissible: 0 + 5% × 2,42,000 · high: reduction applied, unclassified admissible: 44,000 + 5% × 2,24,500", "₹12,100 to ₹55,225"),
+    ("Twin-sharing room", "", "room excess 0; ICU triggers the same 2/3: 5,000 + 13,000 + 20,000 + 5,000 + 2,000 · jointly 0 + 5% × 2,40,000 to 44,000 + 5% × 2,22,500", "₹45,000 · ₹12,000 to ₹55,125"),
+    ("Deluxe room, ₹12,000", "", "ratios 5/12 and 2/3 differ: × 1/3 to × 7/12; 28,000 + 5,000 calculated · jointly 40,000 + 5% × 2,42,000 to 1,47,000 + 5% × 1,61,500", "₹33,000 · ₹52,100 to ₹1,55,075"),
 ]
 
 
@@ -733,7 +733,7 @@ def build_audit():
     <thead><tr><th style="width:250px;">Step</th><th style="width:70px;">Clause</th><th>Arithmetic</th><th style="width:230px;">Result</th></tr></thead>
     <tbody>{trs}</tbody>
   </table>
-  <p class="note" style="margin-top:10px;">Sum insured ₹5,00,000 (synthetic schedule); four room days; non-room items ₹2,93,500. Money is integer paise, ratios are reduced fractions, each multiplication rounds half up once; the compact display drops paise. The engine, run on 25 October 2026, returns the same figures; the evaluation harness checks 21 hand-computed amounts on this wording. Full working: docs/deck/CALCULATION-AUDIT.md in the repository; re-run with scripts/deck-figures.ts.</p>
+  <p class="note" style="margin-top:10px;">Sum insured ₹5,00,000 (synthetic schedule); four room days; non-room items ₹2,93,500. Conditional bounds are taken over every jointly possible outcome of the open questions (sixteen for the deluxe room), so no bound pairs a maximum deduction with a co-payment computed as if it had not happened. Integer paise, reduced fractions, one half-up rounding per multiplication; the compact display drops paise. The engine, run on 25 October 2026, returns the same figures; the harness checks 29 hand-computed amounts on this wording. Full working: docs/deck/CALCULATION-AUDIT.md; re-run with scripts/deck-figures.ts.</p>
   {footer("audit")}
 </section>'''
 

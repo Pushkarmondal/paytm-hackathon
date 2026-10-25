@@ -1,6 +1,6 @@
 import { formatInr } from "@/lib/format-inr";
 import { classifyItems } from "./classify";
-import { evaluateDeduction } from "./deduction";
+import { type DeductionWorld, type WorldOutcome, evaluateDeduction, product } from "./deduction";
 import { computeExcess, resolveLimit, type ResolvedLimit } from "./limits";
 import { type Money, ZERO, add, mulRatio, percentToRatio, sub, sum, times } from "./money";
 import type {
@@ -104,6 +104,46 @@ function noticesFor(ruleset: PolicyRuleset, items: ClassifiedItem[]): Uncertaint
   });
 }
 
+/**
+ * One jointly possible outcome of every open question in the scenario: the deduction world (differential billing,
+ * ambiguous ratio, caveats) crossed with whether each unclassified item turns out to be admissible.
+ */
+interface JointWorld {
+  outcomes: WorldOutcome[];
+  /** Deductions on the items whose state is conditional, in this world. */
+  conditionalItems: Money;
+  /** Amount of unclassified items treated as not admissible in this world. */
+  inadmissible: Money;
+}
+
+const MAX_ENUMERATED_UNKNOWN_ITEMS = 8;
+
+/** Crosses the deduction worlds with the admissibility of each unclassified item. Beyond eight such items only the two extremes are enumerated. */
+function jointWorlds(deductionWorlds: DeductionWorld[], items: ItemResult[]): JointWorld[] {
+  const conditional = items.filter((i) => i.deduction.state === "conditional");
+  const unknown = items.filter((i) => i.deduction.state === "unknown");
+  const perItem = unknown.length <= MAX_ENUMERATED_UNKNOWN_ITEMS;
+  const groups = perItem ? unknown.map((i) => [i]) : unknown.length ? [unknown] : [];
+  const admissibility = product(
+    groups.map((g) => {
+      const label = g.map((i) => i.label).join(", ");
+      return [
+        { label: `${label} not admissible`, inadmissible: sum(g.map((i) => i.amount)) },
+        { label: `${label} admissible`, inadmissible: ZERO },
+      ];
+    }),
+  );
+  return deductionWorlds.flatMap((w) =>
+    admissibility.map((adm) => ({
+      outcomes: [...w.outcomes, ...adm.map((o) => ({ code: "ITEM_NOT_CLASSIFIED" as const, label: o.label }))],
+      conditionalItems: sum(conditional.map((i) => w.itemDeductions[i.itemId] ?? ZERO)),
+      inadmissible: sum(adm.map((o) => o.inadmissible)),
+    })),
+  );
+}
+
+const describe = (w: { outcomes: WorldOutcome[] }) => (w.outcomes.length ? w.outcomes.map((o) => o.label).join("; ") : "nothing open");
+
 interface CopayArgs {
   ruleset: PolicyRuleset;
   limitsKnown: boolean;
@@ -111,29 +151,33 @@ interface CopayArgs {
   roomExcess: ExcessResult;
   icuExcess: ExcessResult;
   items: ItemResult[];
+  worlds: JointWorld[];
   reasons: UncertaintyReason[];
   rulesetProvenance: Provenance;
 }
 
-/** Co-payment on the admissible amount: a single figure when everything is settled, otherwise a range with defensible bounds. */
+/** The co-payment in one joint world: a percentage of what is admissible after every deduction that world implies. */
+function copayIn(a: CopayArgs, settled: Money, w: JointWorld): Money {
+  const rule = a.ruleset.rules.copay!;
+  const base = sub(sub(sub(a.scenarioTotal, settled), w.conditionalItems), w.inadmissible);
+  return mulRatio(base, percentToRatio(rule.percent));
+}
+
+/** Co-payment on the admissible amount: a single figure when everything is settled, otherwise the range over the jointly possible worlds. */
 function evaluateCopay(a: CopayArgs): CopayResult {
   const rule = a.ruleset.rules.copay;
   if (!rule) return { state: "excluded", value: ZERO, trace: null };
   if (!a.limitsKnown || a.roomExcess.value === null || a.icuExcess.value === null) return { state: "unknown", value: null, trace: null };
   const calculated = sum(a.items.filter((i) => i.deduction.state === "calculated" && i.deduction.value !== null).map((i) => i.deduction.value as Money));
-  const conditional = a.items.filter((i) => i.deduction.state === "conditional" && i.deduction.range);
-  const condLow = sum(conditional.map((i) => i.deduction.range!.low));
-  const condHigh = sum(conditional.map((i) => i.deduction.range!.high));
-  const unknownAmount = sum(a.items.filter((i) => i.deduction.state === "unknown").map((i) => i.amount));
   const settled = sum([a.roomExcess.value, a.icuExcess.value, calculated]);
-  const baseLow = sub(sub(sub(a.scenarioTotal, settled), condHigh), unknownAmount);
-  const baseHigh = sub(sub(a.scenarioTotal, settled), condLow);
-  const pct = percentToRatio(rule.percent);
-  const low = mulRatio(baseLow, pct);
-  const high = mulRatio(baseHigh, pct);
+  const values = a.worlds.map((w) => ({ w, copay: copayIn(a, settled, w), base: sub(sub(sub(a.scenarioTotal, settled), w.conditionalItems), w.inadmissible) }));
+  const lowest = values.reduce((m, v) => (v.copay < m.copay ? v : m));
+  const highest = values.reduce((m, v) => (v.copay > m.copay ? v : m));
+  const { copay: low, base: baseLow } = lowest;
+  const { copay: high, base: baseHigh } = highest;
   const assumptions = a.reasons.filter((r) => ["ITEM_NOT_CLASSIFIED", "DIFFERENTIAL_BILLING_NOT_ESTABLISHED", "RATIO_AMBIGUOUS_ROOM_AND_ICU", "WORDING_PREDATES_2020_NORMS", "POLICY_CAVEAT"].includes(r.code) && (r.amountAtStake !== undefined || r.code === "ITEM_NOT_CLASSIFIED"));
   const common = { ruleId: rule.ruleId, ruleName: "Co-payment", source: rule.source, operation: "copay.percentOfAdmissible" as const };
-  if (baseLow === baseHigh) {
+  if (low === high) {
     const trace: Trace = {
       ...common,
       inputs: [
@@ -146,7 +190,7 @@ function evaluateCopay(a: CopayArgs): CopayResult {
     };
     return { state: "calculated", value: high, trace };
   }
-  const basis = "Co-payment on the admissible amount: low = unclassified items not admissible and every open deduction at its maximum, high = unclassified items admissible and every open deduction at its minimum";
+  const basis = `Co-payment on the admissible amount, over every jointly possible outcome of the open questions: low when ${describe(lowest.w)}; high when ${describe(highest.w)}`;
   const range: Range = { low, high, basis };
   const trace: Trace = {
     ...common,
@@ -204,16 +248,19 @@ export function evaluate(inputs: CaseInputs, scenario: Scenario): SimulationResu
   uncertainties.push(...deduction.uncertainties);
   uncertainties.push(...noticesFor(ruleset, classified));
 
-  const copay = evaluateCopay({
+  const worlds = jointWorlds(deduction.worlds, deduction.items);
+  const copayArgs: CopayArgs = {
     ruleset,
     limitsKnown: roomLimit.state === "calculated",
     scenarioTotal,
     roomExcess,
     icuExcess: icuExcessResult,
     items: deduction.items,
+    worlds,
     reasons: uncertainties,
     rulesetProvenance,
-  });
+  };
+  const copay = evaluateCopay(copayArgs);
 
   const calculatedItemDeductions = sum(
     deduction.items.filter((i) => i.deduction.state === "calculated" && i.deduction.value !== null).map((i) => i.deduction.value as Money),
@@ -224,12 +271,27 @@ export function evaluate(inputs: CaseInputs, scenario: Scenario): SimulationResu
     calculatedItemDeductions,
     copay.state === "calculated" && copay.value !== null ? copay.value : ZERO,
   ]);
-  const ranges: Range[] = [];
-  if (deduction.conditionalTotal) ranges.push(deduction.conditionalTotal);
-  if (copay.state === "conditional" && copay.range) ranges.push(copay.range);
-  const conditionalDeductions: Range | null = ranges.length
-    ? { low: sum(ranges.map((r) => r.low)), high: sum(ranges.map((r) => r.high)), basis: ranges.map((r) => r.basis).join(" | ") }
-    : null;
+  // Conditional deductions are bounded over jointly possible worlds: in each world the conditional items take one
+  // value and the co-payment is computed on what that world leaves admissible. The bounds are then the smallest and
+  // largest world totals, so no bound pairs a maximum deduction with a co-payment that ignores it.
+  const hasConditionalItems = deduction.items.some((i) => i.deduction.state === "conditional");
+  const copayOpen = copay.state === "conditional";
+  let conditionalDeductions: Range | null = null;
+  if (hasConditionalItems || copayOpen) {
+    const settled = sum([
+      roomExcess.value ?? ZERO,
+      icuExcessResult.value ?? ZERO,
+      calculatedItemDeductions,
+    ]);
+    const totals = worlds.map((w) => ({ w, total: add(w.conditionalItems, copayOpen ? copayIn(copayArgs, settled, w) : ZERO) }));
+    const lowest = totals.reduce((m, t) => (t.total < m.total ? t : m));
+    const highest = totals.reduce((m, t) => (t.total > m.total ? t : m));
+    conditionalDeductions = {
+      low: lowest.total,
+      high: highest.total,
+      basis: `Over every jointly possible outcome of the open questions (${worlds.length} in all): low when ${describe(lowest.w)}; high when ${describe(highest.w)}`,
+    };
+  }
   const unknownItems = deduction.items.filter((i) => i.classification === "unknown");
   const totals: SimulationTotals = {
     roomRent,
