@@ -1,11 +1,13 @@
 #!/bin/zsh
-# Regenerates docs/deck/claim-sach-pitch.pdf from docs/deck/pitch.html with headless Chrome.
-# Requires Google Chrome and the project's node_modules (for the Geist font). Run from anywhere.
-# If pypdf is installed for python3, the document metadata is set as well.
+# Rebuilds the pitch deck: docs/deck/pitch.html from build_deck.py, then claim-sach-pitch.pdf with headless Chrome.
+# Requires Google Chrome, python3 and the project's node_modules (for the Geist font). With pypdf installed the
+# document metadata is set as well. Screenshots: `npm run dev`, then `node shots/shot.mjs <dir> shots/scenarios.json`
+# and `python3 shots/crops.py <dir> images/v3` (needs Pillow).
 set -e
 CHROME="/Applications/Google Chrome.app/Contents/MacOS/Google Chrome"
 HERE="$(cd "$(dirname "$0")" && pwd)"
 OUT="$HERE/claim-sach-pitch.pdf"
+python3 "$HERE/build_deck.py" "$HERE/pitch.html" "images/v3/" "../../node_modules/geist/dist/fonts/"
 "$CHROME" --headless=new --disable-gpu --allow-file-access-from-files --no-pdf-header-footer \
   --generate-pdf-document-outline --print-to-pdf="$OUT" "file://$HERE/pitch.html"
 if python3 -c "import pypdf" 2>/dev/null; then

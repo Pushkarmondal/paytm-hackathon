@@ -1,0 +1,229 @@
+[
+ {
+  "name": "demo",
+  "steps": [
+   [
+    "nav",
+    "http://localhost:3000/"
+   ],
+   [
+    "shot",
+    "overview-demo"
+   ],
+   [
+    "tab",
+    "Coverage Twin"
+   ],
+   [
+    "shot",
+    "twin-demo"
+   ],
+   [
+    "clickAria",
+    "Surgeon fees",
+    "Single private"
+   ],
+   [
+    "wait",
+    900
+   ],
+   [
+    "shot",
+    "trace-demo",
+    "view"
+   ]
+  ]
+ },
+ {
+  "name": "why",
+  "steps": [
+   [
+    "nav",
+    "http://localhost:3000/"
+   ],
+   [
+    "tab",
+    "Coverage Twin"
+   ],
+   [
+    "tab",
+    "Why this changed"
+   ],
+   [
+    "shot",
+    "why-demo"
+   ]
+  ]
+ },
+ {
+  "name": "uncertainty",
+  "steps": [
+   [
+    "nav",
+    "http://localhost:3000/"
+   ],
+   [
+    "tab",
+    "What remains uncertain"
+   ],
+   [
+    "shot",
+    "uncertainty-demo"
+   ],
+   [
+    "clickText",
+    "button",
+    "uestion sheet"
+   ],
+   [
+    "wait",
+    900
+   ],
+   [
+    "shot",
+    "sheet-demo",
+    "view"
+   ]
+  ]
+ },
+ {
+  "name": "review",
+  "steps": [
+   [
+    "nav",
+    "http://localhost:3000/"
+   ],
+   [
+    "tab",
+    "Input review"
+   ],
+   [
+    "shot",
+    "review-demo"
+   ]
+  ]
+ },
+ {
+  "name": "confirmed",
+  "steps": [
+   [
+    "nav",
+    "http://localhost:3000/"
+   ],
+   [
+    "tab",
+    "Input review"
+   ],
+   [
+    "select",
+    "Hospital follows differential billing",
+    "yes"
+   ],
+   [
+    "tab",
+    "Coverage Twin"
+   ],
+   [
+    "shot",
+    "twin-confirmed-demo"
+   ],
+   [
+    "tab",
+    "Scenario overview"
+   ],
+   [
+    "shot",
+    "overview-confirmed-demo"
+   ]
+  ]
+ },
+ {
+  "name": "nia",
+  "steps": [
+   [
+    "nav",
+    "http://localhost:3000/"
+   ],
+   [
+    "select",
+    "Arogya",
+    "arogya"
+   ],
+   [
+    "wait",
+    900
+   ],
+   [
+    "shot",
+    "overview-nia"
+   ],
+   [
+    "tab",
+    "Coverage Twin"
+   ],
+   [
+    "shot",
+    "twin-nia"
+   ],
+   [
+    "tab",
+    "What remains uncertain"
+   ],
+   [
+    "shot",
+    "uncertainty-nia"
+   ],
+   [
+    "tab",
+    "Input review"
+   ],
+   [
+    "shot",
+    "review-nia"
+   ],
+   [
+    "tab",
+    "Ruleset builder"
+   ],
+   [
+    "shot",
+    "builder-nia"
+   ]
+  ]
+ },
+ {
+  "name": "builder-q",
+  "steps": [
+   [
+    "nav",
+    "http://localhost:3000/"
+   ],
+   [
+    "select",
+    "Arogya",
+    "arogya"
+   ],
+   [
+    "wait",
+    800
+   ],
+   [
+    "tab",
+    "Ruleset builder"
+   ],
+   [
+    "type",
+    "room rate exceeds",
+    "what happens if the room rate exceeds the limit"
+   ],
+   [
+    "wait",
+    800
+   ],
+   [
+    "shot",
+    "builder-q"
+   ]
+  ]
+ }
+]

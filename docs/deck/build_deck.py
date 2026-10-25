@@ -1,0 +1,678 @@
+#!/usr/bin/env python3
+"""Generates the Claim Sach pitch deck as HTML (1280x720 pages) for headless Chrome.
+usage: build_deck.py <out.html> <image-base> <font-base>
+  image-base: prefix for docs/deck/images/v3/<name>.jpg (e.g. file:///abs/docs/deck/images/v3/ or images/v3/)
+  font-base:  prefix for node_modules/geist/dist/fonts/ (file:///abs/... or ../../node_modules/geist/dist/fonts/)
+"""
+import sys
+
+out_path, IMG, FONT = sys.argv[1], sys.argv[2], sys.argv[3]
+
+CSS = r"""
+  @font-face { font-family: "Geist"; src: url("__FONT__geist-sans/Geist-Variable.woff2") format("woff2"); font-weight: 100 900; }
+  @font-face { font-family: "Geist Mono"; src: url("__FONT__geist-mono/GeistMono-Variable.woff2") format("woff2"); font-weight: 100 900; }
+  @page { size: 1280px 720px; margin: 0; }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html, body { width: 1280px; }
+  body { font-family: "Geist", "Helvetica Neue", Helvetica, Arial, sans-serif; color: #141210; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+  a { color: inherit; text-decoration: none; }
+  .slide { width: 1280px; height: 720px; overflow: hidden; position: relative; page-break-after: always; break-after: page; background: #FBFAF8; padding: 60px 72px 56px; }
+  .slide:last-child { page-break-after: auto; }
+  .dark { background: #141210; color: #FFFFFF; }
+  .dark::before { content: ""; position: absolute; inset: 0; background: radial-gradient(900px 500px at 85% 15%, rgba(124,58,237,0.22), rgba(20,18,16,0) 60%), radial-gradient(700px 420px at 10% 100%, rgba(217,119,6,0.18), rgba(20,18,16,0) 60%); }
+  .dark > * { position: relative; }
+  .kicker { display: flex; align-items: center; gap: 10px; font-size: 12px; font-weight: 600; letter-spacing: 0.16em; text-transform: uppercase; color: #8A8178; }
+  .kicker::before { content: ""; width: 10px; height: 10px; background: #D97706; border-radius: 2px; }
+  .dark .kicker { color: #B8B0A6; }
+  .num { font-family: "Geist Mono", Menlo, monospace; font-size: 12px; letter-spacing: 0.08em; color: #B5ADA3; }
+  h1 { font-size: 42px; font-weight: 600; letter-spacing: -0.025em; line-height: 1.1; margin-top: 14px; max-width: 1060px; }
+  .h2 { font-size: 20px; font-weight: 600; letter-spacing: -0.01em; line-height: 1.3; }
+  p, li { font-size: 16.5px; line-height: 1.5; color: #4A443E; }
+  .dark p, .dark li { color: #D9D3CB; }
+  .lede { font-size: 19px; color: #2A2623; max-width: 900px; margin-top: 16px; line-height: 1.5; }
+  .footer { position: absolute; left: 72px; right: 72px; bottom: 24px; display: flex; justify-content: space-between; align-items: center; font-size: 11px; color: #A39B91; letter-spacing: 0.02em; }
+  .footer .dots { display: flex; gap: 5px; }
+  .footer .dots i { width: 6px; height: 6px; border-radius: 50%; background: #E3DFD8; display: block; }
+  .footer .dots i.on { background: #D97706; }
+  .dark .footer { color: #8A8178; } .dark .footer .dots i { background: #3A3531; } .dark .footer .dots i.on { background: #F59E0B; }
+  .surface { background: #FFFFFF; border: 1px solid #ECE8E1; border-radius: 16px; }
+  .ink { background: #141210; color: #fff; border-radius: 16px; }
+  .ink p, .ink li { color: #D9D3CB; }
+  .tile { background: #FFFFFF; border: 1px solid #ECE8E1; border-radius: 16px; padding: 18px 20px; }
+  .tile .h3 { font-size: 16px; font-weight: 600; color: #141210; margin-bottom: 5px; letter-spacing: -0.01em; }
+  .tile p { font-size: 13.5px; line-height: 1.45; }
+  .tile.sky { background: #F0F9FF; border-color: #BAE6FD; }
+  .tile.green { background: #F0FDF4; border-color: #BBF7D0; }
+  .tile.violet { background: #F5F3FF; border-color: #DDD6FE; }
+  .tile.amber { background: #FFFBEB; border-color: #FDE68A; }
+  .tile.inkt { background: #141210; border-color: #141210; } .tile.inkt .h3 { color: #fff; } .tile.inkt p { color: #D9D3CB; }
+  .accent { color: #C2410C; }
+  .bigstat { font-size: 40px; font-weight: 600; letter-spacing: -0.03em; line-height: 1; color: #141210; }
+  .bigstat small { display: block; font-size: 13px; font-weight: 500; color: #6F675F; letter-spacing: 0; margin-top: 8px; line-height: 1.35; }
+  .frame { border: 1px solid #E3DFD8; border-radius: 14px; overflow: hidden; background: #fff; }
+  .dark .frame { border-color: #3A3531; }
+  .frame .bar { height: 24px; background: #F3F1ED; border-bottom: 1px solid #E8E4DD; display: flex; gap: 6px; align-items: center; padding: 0 12px; }
+  .dark .frame .bar { background: #221F1C; border-bottom-color: #3A3531; }
+  .frame .bar i { width: 8px; height: 8px; border-radius: 50%; background: #D9D3CB; display: block; }
+  .dark .frame .bar i { background: #4A443E; }
+  .frame img { display: block; width: 100%; height: auto; }
+  .cap { font-size: 12.5px; color: #8A8178; margin-top: 9px; line-height: 1.45; }
+  .chip { display: inline-flex; align-items: center; gap: 6px; font-size: 11px; font-weight: 600; letter-spacing: 0.08em; text-transform: uppercase; padding: 6px 11px; border-radius: 999px; border: 1px solid; }
+  .chip.green { color: #15803D; border-color: #BBF7D0; background: #F0FDF4; }
+  .chip.amber { color: #B45309; border-color: #FDE68A; background: #FFFBEB; }
+  .chip.violet { color: #6D28D9; border-color: #DDD6FE; background: #F5F3FF; }
+  .chip.sky { color: #0369A1; border-color: #BAE6FD; background: #F0F9FF; }
+  .chip.grey { color: #57534E; border-color: #E7E5E4; background: #FAFAF9; }
+  .dark .chip.violet { background: rgba(124,58,237,0.22); color: #E9D5FF; border-color: #7C3AED; }
+  table { border-collapse: collapse; width: 100%; font-size: 13.5px; }
+  th, td { text-align: left; padding: 9px 10px; border-bottom: 1px solid #ECE8E1; vertical-align: top; line-height: 1.35; }
+  th { font-weight: 600; font-size: 11px; text-transform: uppercase; letter-spacing: 0.1em; color: #8A8178; }
+  td.r { text-align: right; font-variant-numeric: tabular-nums; white-space: nowrap; }
+  table.matrix td { font-size: 12px; padding: 6px 9px; line-height: 1.32; }
+  table.matrix td.n { font-family: "Geist Mono", Menlo, monospace; color: #B5ADA3; font-size: 11.5px; }
+  table.matrix td.w { color: #141210; font-weight: 500; }
+  table.matrix td.s { color: #8A8178; font-size: 11.5px; white-space: nowrap; }
+  table.states td { font-size: 12px; padding: 7px 9px; line-height: 1.35; }
+  .note { font-size: 12.5px; color: #8A8178; line-height: 1.45; }
+  ul { list-style: none; }
+  ul.bul li { position: relative; padding-left: 18px; margin-bottom: 8px; }
+  ul.bul li::before { content: ""; position: absolute; left: 0; top: 10px; width: 6px; height: 6px; border-radius: 1px; background: #D97706; }
+  .mono { font-family: "Geist Mono", Menlo, monospace; }
+  .code { background: #141210; color: #E7E5E4; border-radius: 14px; padding: 16px 18px; font-family: "Geist Mono", Menlo, monospace; font-size: 11px; line-height: 1.5; white-space: pre-wrap; word-break: break-word; }
+  .code .t { color: #C4B5FD; } .code .s { color: #FCD34D; } .code .c { color: #8A8178; } .code .k { color: #93C5FD; } .code .h { color: #fff; font-weight: 600; }
+  .dot { width: 30px; height: 30px; border-radius: 50%; background: #141210; color: #fff; font-weight: 600; font-size: 13px; display: flex; align-items: center; justify-content: center; flex: none; }
+  .dark .dot { background: #F59E0B; color: #141210; }
+  .callout { display: grid; grid-template-columns: 30px 1fr; gap: 14px; align-items: start; }
+  .callout .h3 { font-size: 16.5px; font-weight: 600; color: #fff; margin-bottom: 4px; letter-spacing: -0.01em; }
+  .callout p { font-size: 13.5px; }
+  .rail { position: relative; display: grid; grid-template-columns: repeat(6, 1fr); gap: 14px; margin-top: 30px; }
+  .rail::before { content: ""; position: absolute; left: 20px; right: 20px; top: 15px; height: 1px; background: #D9D3CB; }
+  .rail .st { position: relative; }
+  .rail .st .n { width: 30px; height: 30px; border-radius: 50%; background: #FBFAF8; border: 1.5px solid #141210; color: #141210; font-size: 12px; font-weight: 600; display: flex; align-items: center; justify-content: center; }
+  .rail .st.hot .n { background: #141210; color: #fff; }
+  .rail .st .h3 { font-size: 14.5px; font-weight: 600; margin-top: 12px; line-height: 1.25; }
+  .rail .st p { font-size: 12.5px; margin-top: 4px; line-height: 1.35; }
+  .bars .row { display: grid; grid-template-columns: 180px 1fr 150px; gap: 14px; align-items: center; margin-bottom: 11px; font-size: 13.5px; color: #2A2623; }
+  .bars .track { height: 14px; background: #F3F1ED; border-radius: 999px; overflow: hidden; }
+  .bars .fill { height: 100%; border-radius: 999px; }
+  .icon { width: 40px; height: 40px; border-radius: 12px; display: flex; align-items: center; justify-content: center; background: #F3F1ED; flex: none; }
+  .icon svg { width: 22px; height: 22px; stroke: #141210; fill: none; stroke-width: 1.75; stroke-linecap: round; stroke-linejoin: round; }
+  .toc a { display: grid; grid-template-columns: 56px 300px 1fr; gap: 20px; align-items: baseline; padding: 13px 0; border-bottom: 1px solid #ECE8E1; }
+  .toc a .t { font-size: 20px; font-weight: 600; letter-spacing: -0.01em; color: #141210; }
+  .toc a .t small { font-size: 12px; font-weight: 500; color: #A39B91; margin-left: 10px; letter-spacing: 0; }
+  .toc a .d { font-size: 14px; color: #6F675F; }
+  .link { color: #0369A1; text-decoration: underline; text-underline-offset: 3px; text-decoration-color: #BAE6FD; }
+  .dark .link { color: #93C5FD; text-decoration-color: #3B82F6; }
+  .head { display: grid; grid-template-columns: 40px 1fr; gap: 14px; align-items: start; }
+  .head .h2 { font-size: 18px; }
+  .head p { font-size: 14px; margin-top: 4px; }
+  .two { display: grid; gap: 36px; align-items: start; margin-top: 24px; }
+  .stack { display: grid; gap: 14px; }
+  .ptag { display: inline-flex; align-items: center; gap: 8px; white-space: nowrap; font-size: 12px; font-weight: 600; letter-spacing: 0.12em; text-transform: uppercase; color: #C2410C; }
+  .ptag b { font-family: "Geist Mono", Menlo, monospace; font-weight: 500; letter-spacing: 0.04em; color: #fff; background: #C2410C; border-radius: 6px; padding: 2px 7px; font-size: 11.5px; }
+""".replace("__FONT__", FONT)
+
+ICONS = {
+    "ladder": '<svg viewBox="0 0 24 24"><path d="M4 6h16M4 12h11M4 18h7"/></svg>',
+    "question": '<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M9.5 9.5a2.5 2.5 0 1 1 3.5 2.3c-.7.4-1 .9-1 1.7M12 17h.01"/></svg>',
+    "check": '<svg viewBox="0 0 24 24"><path d="M5 7h14M5 12h14M5 17h8"/><path d="M15 16l2 2 4-4"/></svg>',
+    "doc": '<svg viewBox="0 0 24 24"><path d="M7 3h7l4 4v14H7z"/><path d="M14 3v4h4M10 12h5M10 16h5"/></svg>',
+}
+
+SECTION_OF_PAGE = {3: 1, 4: 1, 5: 2, 6: 2, 7: 3, 8: 3, 9: 3, 10: 3, 11: 3, 12: 3, 13: 3, 14: 3, 15: 3, 16: 4, 17: 4, 18: 5, 19: 6, 20: 7}
+
+
+def img(name, width=None, bar=False, extra_style=""):
+    style = f' style="width:{width}px;{extra_style}"' if width else (f' style="{extra_style}"' if extra_style else "")
+    b = '<div class="bar"><i></i><i></i><i></i></div>' if bar else ""
+    return f'<div class="frame"{style}>{b}<img src="{IMG}{name}.jpg" alt="{name}"></div>'
+
+
+def footer(page, left='<a href="#contents">Contents</a>'):
+    sec = SECTION_OF_PAGE.get(page)
+    dots = "".join(f'<i{" class=\"on\"" if i == sec else ""}></i>' for i in range(1, 8))
+    return f'<div class="footer"><span>{left}</span><span class="dots">{dots}</span><span>{page}</span></div>'
+
+
+def ptag(n, text):
+    return f'<div class="ptag"><b>Problem{"s" if "·" in str(n) else ""} {n}</b>{text}</div>'
+
+
+def esc(s):
+    return s.replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;")
+
+
+slides = []
+
+# 1. Cover
+slides.append(f'''
+<section class="slide dark" id="cover">
+  <div class="kicker">Paytm Build for India AI Hackathon · Bengaluru · 31 October 2026</div>
+  <div style="display:grid; grid-template-columns: 1fr 560px; gap: 56px; margin-top: 76px; align-items: center;">
+    <div>
+      <span class="chip violet">Track 2 · AI-Powered Financial Journeys</span>
+      <h1 style="font-size:84px; margin-top:26px; letter-spacing:-0.035em;">Claim Sach</h1>
+      <p style="font-size:24px; color:#FFFFFF; margin-top:18px; line-height:1.35; max-width:540px;">Coverage Twin: know what your policy might leave you paying, <em>before</em> admission.</p>
+      <p style="font-size:15px; margin-top:44px; color:#B8B0A6;">Pushkar Mondal · Founding Engineer, Xeliport</p>
+    </div>
+    <div>
+      {img("headline-demo", 560, bar=True)}
+      <p class="cap">The first thing a user sees: calculated, conditional and unclassified amounts kept apart, never folded into one total.</p>
+    </div>
+  </div>
+  <div class="footer"><span>Claim Sach · Coverage Twin</span><span><a href="#contents">Contents</a></span></div>
+</section>''')
+
+# 2. Contents
+slides.append(f'''
+<section class="slide" id="contents">
+  <div class="kicker">Contents</div>
+  <h1>Seven sections, eleven problems, one working product</h1>
+  <div class="toc" style="margin-top:18px;">
+    <a href="#problem"><span class="num">01</span><span class="t">Problem<small>slides 3 to 4</small></span><span class="d">The policy's cost shows up at the hospital; the eleven things that go wrong, mapped to what the product does</span></a>
+    <a href="#moment"><span class="num">02</span><span class="t">Solution<small>slides 5 to 6</small></span><span class="d">Documents in, itemised deductions out; change your room, see the difference</span></a>
+    <a href="#p2"><span class="num">03</span><span class="t">Proof<small>slides 7 to 15</small></span><span class="d">Nine screens of the working product, one problem each, with the clause behind every number</span></a>
+    <a href="#technology"><span class="num">04</span><span class="t">Technology<small>slides 16 to 17</small></span><span class="d">A deterministic engine, AI only with human review, and the guarantees as they stand in the code</span></a>
+    <a href="#usp"><span class="num">05</span><span class="t">USP<small>slide 18</small></span><span class="d">Item-level, clause-cited, honest about unknowns</span></a>
+    <a href="#impact"><span class="num">06</span><span class="t">Impact &amp; benefits<small>slide 19</small></span><span class="d">The room decision made before admission; results measured, not claimed</span></a>
+    <a href="#business"><span class="num">07</span><span class="t">Business model<small>slide 20</small></span><span class="d">Where it fits Paytm, and the tests before anyone believes a number</span></a>
+  </div>
+  <p class="note" style="margin-top:16px;">Every entry above is a link, and every slide's footer links back here. Every screenshot is the product as it runs today, uncropped at element level. Source links open the repository and the regulator's copy of the policy wording.</p>
+  {footer(2, "Claim Sach · Coverage Twin")}
+</section>''')
+
+# 3. Problem
+slides.append(f'''
+<section class="slide" id="problem">
+  <div class="kicker">01 · Problem statement</div>
+  <h1>The policy's cost shows up at the hospital</h1>
+  <p class="lede">Room-rent limits, proportionate deductions, ICU limits, co-payments, sub-limits and exclusions surface at admission, not at purchase. Pick a room above the eligible rate and many policies pay the surgeon, the anaesthetist, nursing and the operation theatre only in the proportion <strong>eligible ÷ actual rate</strong>. It is not about the room.</p>
+  <div style="display:grid; grid-template-columns: 1fr 360px; gap: 40px; margin-top: 24px; align-items: start;">
+    <div class="surface" style="padding:22px 26px;">
+      <div class="h2" style="font-size:17px;">One room choice, four items that are not the room</div>
+      <div class="bars" style="margin-top:16px;">
+        <div class="row"><span>Room rent, 4 days</span><div class="track"><div class="fill" style="width:33%; background:#C2410C;"></div></div><span style="white-space:nowrap;">₹10,000 above limit</span></div>
+        <div class="row"><span>Surgeon fees ₹60,000</span><div class="track"><div class="fill" style="width:66%; background:#D97706;"></div></div><span style="white-space:nowrap;">₹20,000 at ratio 2/3</span></div>
+        <div class="row"><span>Operation theatre ₹35,000</span><div class="track"><div class="fill" style="width:39%; background:#D97706;"></div></div><span>₹11,667</span></div>
+        <div class="row"><span>Anaesthetist ₹15,000</span><div class="track"><div class="fill" style="width:17%; background:#D97706;"></div></div><span>₹5,000</span></div>
+        <div class="row"><span>Nursing ₹4,000</span><div class="track"><div class="fill" style="width:5%; background:#D97706;"></div></div><span>₹1,333</span></div>
+      </div>
+      <p class="note" style="margin-top:6px;">Worked example on a synthetic policy and estimate, computed by the prototype. Not a market statistic.</p>
+    </div>
+    <div style="display:grid; gap:22px;">
+      <div class="bigstat">₹2,500 <span style="font-size:20px; font-weight:500; color:#6F675F;">a day</span><small>the room-rent gap: ₹7,500 chosen against ₹5,000 eligible</small></div>
+      <div class="bigstat accent">₹48,000<small>potential deductions from that one choice; ₹38,000 of it on items that are not the room</small></div>
+      <div class="bigstat">4 <span style="font-size:20px; font-weight:500; color:#6F675F;">of 11 lines</span><small>affected under the policy's definition; 3 excluded by it; 2 the wording never classifies</small></div>
+    </div>
+  </div>
+  <p style="margin-top:18px; font-size:15.5px;">Which items are touched depends on the policy's own definition, on facts only the hospital knows, and on clauses the policyholder has never read. General explainers stop at the concept. The gap we are testing is applying <em>your</em> wording to <em>your</em> bill.</p>
+  {footer(3)}
+</section>''')
+
+# 4. Problem map
+rows = [
+    ("A room above the eligible rate cuts the surgeon's fee, not just the room", "Applies the proportion (eligible ÷ actual) item by item, with the ratio and the clause on each row", "Coverage Twin · 6"),
+    ("Which items are cut depends on this wording's own definition", "Every line classified by the policy's text: included, excluded, or unknown; never one ratio over the whole bill", "Twin · 7"),
+    ("A fact only the hospital knows: does it bill differently by room?", "A range with both bounds until it is confirmed; the answer is recorded as yours in every trace", "Uncertain, Input review · 8"),
+    ("Items the wording never mentions get quietly treated as ₹0", "Unknown is never zero: shown apart from every total, with who can settle it; the not-modelled list is on screen", "Uncertain · 9"),
+    ("ICU rates and capped percentage limits behave differently from room rent", "Lower of percent and cap; ICU can trigger the proportion; two different ratios give bounds, not a guess", "Real wording · 10"),
+    ("A co-payment stacks on everything else", "A bounded range until every other amount is settled; a single figure only then", "Real wording · 10"),
+    ("Old wordings conflict with later IRDAI norms", "A caveat on the affected items: requires insurer confirmation, with the circular named", "Real wording · 10"),
+    ("“How did you get this number?”", "A trace on every amount: clause and page, inputs with provenance, formula, result; tampered traces fail validation", "Trace drawer · 11"),
+    ("Encoding a new wording takes an expert", "Find the clause by keyword; a model proposes rules with quotes, the engine verifies each quote verbatim, a person confirms", "Ruleset builder · 12"),
+    ("Your real documents, not a demo, and no server to trust", "JSON and CSV read in the browser only; schema-checked; misquotes refused; every field correctable with provenance", "Input review · 13"),
+    ("Which room, what to ask, and how to prove it later", "Room ladder, question sheet per hospital and insurer, why-this-changed, and an evidence pack with every trace", "Ladder, sheet, pack · 14, 15"),
+]
+trs = "".join(f'<tr><td class="n">{i:02d}</td><td class="w">{esc(a)}</td><td>{esc(b)}</td><td class="s">{esc(c)}</td></tr>' for i, (a, b, c) in enumerate(rows, 1))
+slides.append(f'''
+<section class="slide" id="map">
+  <div class="kicker">01 · Problem statement · the map</div>
+  <h1 style="font-size:38px;">Eleven problems, and what the product does about each</h1>
+  <table class="matrix" style="margin-top:16px;">
+    <thead><tr><th style="width:40px;">#</th><th style="width:380px;">What goes wrong for the policyholder</th><th>What Claim Sach does, as built</th><th style="width:190px;">Where · slide</th></tr></thead>
+    <tbody>{trs}</tbody>
+  </table>
+  {footer(4)}
+</section>''')
+
+# 5. Solution rail
+slides.append(f'''
+<section class="slide" id="solution">
+  <div class="kicker">02 · Proposed solution · how it works</div>
+  <h1>Documents in, itemised deductions out, every step on screen</h1>
+  <div class="rail">
+    <div class="st"><div class="n">1</div><div class="h3">Policy documents</div><p>Wording and schedule, synthetic or real, labelled which.</p></div>
+    <div class="st"><div class="n">2</div><div class="h3">Structured rules</div><p>Each rule cites its clause and quotes it in full.</p></div>
+    <div class="st"><div class="n">3</div><div class="h3">Scenario simulation</div><p>Room, rate, days, the hospital's own line items.</p></div>
+    <div class="st hot"><div class="n">4</div><div class="h3">Itemised potential deductions</div><p>Room excess, ICU excess, proportion, co-payment.</p></div>
+    <div class="st"><div class="n">5</div><div class="h3">Source clause</div><p>Page-cited, verbatim, beside every number.</p></div>
+    <div class="st"><div class="n">6</div><div class="h3">Explicit uncertainty</div><p>What is open, what is at stake, who can settle it.</p></div>
+  </div>
+  <div style="display:grid; grid-template-columns: repeat(4, 1fr); gap: 16px; margin-top: 34px;">
+    <div class="tile"><span class="num">0:00</span><div class="h3" style="margin-top:6px;">Overview</div><p>₹15,000 calculated, ₹0 to ₹38,000 conditional, ₹7,500 not classified. Not a total, and it says so.</p></div>
+    <div class="tile"><span class="num">0:25</span><div class="h3" style="margin-top:6px;">Twin</div><p>Change the room; the itemised breakdown updates at once with the cause rule per row.</p></div>
+    <div class="tile"><span class="num">1:35</span><div class="h3" style="margin-top:6px;">Uncertain</div><p>Ask the hospital, ask the insurer, resolve now; plus what this version does not model at all.</p></div>
+    <div class="tile inkt"><span class="num" style="color:#B8B0A6;">3:00</span><div class="h3" style="margin-top:6px;">Real wording</div><p>Switch to Arogya Sanjeevani and watch the same engine refuse to guess where the wording is silent.</p></div>
+  </div>
+  <p class="note" style="margin-top:18px;">Not a chatbot. Not a payout guarantee. A scenario estimate of the deductions it covers, with its unknowns on screen. Six screens, two wordings, one command, offline.</p>
+  {footer(5)}
+</section>''')
+
+# 6. The moment (problem 1)
+slides.append(f'''
+<section class="slide dark" id="moment">
+  <div class="kicker">02 · Proposed solution · the moment · problem 1</div>
+  <h1 style="font-size:48px;">Change your room. See the difference.</h1>
+  <div style="display:grid; grid-template-columns: 720px 1fr; gap: 40px; margin-top: 24px; align-items: start;">
+    <div>
+      {img("twin-roomicu", 720, bar=True)}
+      <p class="cap">Twin-sharing (A) against single private (B), same policy, same estimate. The room row changed: ₹0 against ₹10,000 above the limit, clause C1. The ICU row did not: its limit never depends on the room.</p>
+    </div>
+    <div style="display:grid; gap:20px; padding-top:2px;">
+      <div class="callout"><div class="dot">1</div><div><div class="h3">One policy, one estimate, two rooms</div><p>Only the rows a rule touched light up. The rest stay exactly as they were.</p></div></div>
+      <div class="callout"><div class="dot">2</div><div><div class="h3">Every amount opens its evidence</div><p>Clause and page, inputs with where they came from, the formula, the result.</p></div></div>
+      <div class="callout"><div class="dot">3</div><div><div class="h3">Ranges, not guesses</div><p>Until the hospital confirms differential billing, the surgeon's deduction is ₹0 to ₹20,000.</p></div></div>
+      <div class="callout"><div class="dot">4</div><div><div class="h3">Unknown is never zero</div><p>Lines the wording never classifies stay out of every total, and the panel says who can settle them.</p></div></div>
+    </div>
+  </div>
+  {footer(6)}
+</section>''')
+
+# 7. Problem 2: defined by the policy
+slides.append(f'''
+<section class="slide" id="p2">
+  <div class="kicker">03 · Proof · what the product does, problem by problem</div>
+  <h1>Which items are cut is the wording's call, not ours</h1>
+  <div class="two" style="grid-template-columns: 600px 1fr;">
+    <div>
+      {ptag(2, "The policy's own definition decides")}
+      <div style="margin-top:12px;">{img("twin-classes", 600)}</div>
+      <p class="cap">The lower half of the same Coverage Twin table: three lines the demo wording keeps whole, two it never classifies. Rows that cannot be determined show a dash, never ₹0.</p>
+    </div>
+    <div class="stack">
+      <div class="tile"><div class="h3">Included: by the wording's definition</div><p>The synthetic clause C4 names nursing, surgeon, anaesthetist, consultant and operation-theatre charges. Arogya Sanjeevani's Note (b) says "all other expenses incurred at the Hospital, with the exception of cost of medicines". Same engine, two different lists.</p></div>
+      <div class="tile"><div class="h3">Excluded: by the same wording</div><p>Implant, pharmacy and diagnostics stay whole under C4. Under the real wording only medicines are excepted, so implants and diagnostics are reduced, with a caveat (slide 10). No universal Indian policy is hard-coded anywhere.</p></div>
+      <div class="tile sky"><div class="h3">Unknown: out of every total</div><p>Physiotherapy and hospital admin charges are neither named nor excluded by C4. They are shown separately with "Cannot determine". On Input review you can classify them yourself; the choice is recorded as your assumption in every trace.</p></div>
+    </div>
+  </div>
+  {footer(7)}
+</section>''')
+
+# 8. Problem 3: a fact only the hospital knows
+slides.append(f'''
+<section class="slide" id="p3">
+  <div class="kicker">03 · Proof · problem by problem</div>
+  <h1>A hospital fact turns a range into a number</h1>
+  <div class="two" style="grid-template-columns: 540px 1fr;">
+    <div class="stack">
+      <div>{img("unc-hospital", 540)}<p class="cap">Open question, four items affected, ₹0 to ₹38,000 at stake, and what to ask.</p></div>
+      <div>{img("twin-confirmed-ame", 540)}<p class="cap">After "Yes, confirmed by me" on Input review: the same four rows, now calculated.</p></div>
+    </div>
+    <div>
+      {ptag(3, "Differential billing by room category")}
+      <div class="stack" style="margin-top:12px;">
+        <div class="tile amber"><div class="h3">Before: both bounds, each with its own trace</div><p>Clause C3 applies only where the hospital bills by room category; the estimate does not say. The surgeon's fee shows ₹0 to ₹20,000: low = C3 does not apply, high = the full proportion. The headline keeps it out of the calculated figure.</p></div>
+        <div class="tile green"><div class="h3">After: one answer, recorded as yours</div><p>Confirm it on Input review and every dependent amount recomputes: calculated deductions move from ₹15,000 to ₹53,000, the open questions drop from 3 to 2, and every trace shows the input as "confirmed by you".</p></div>
+        <div class="tile"><div class="h3">Ranges only with defensible bounds</div><p>A yes-or-no fact has two computable outcomes, so both are shown. An item the wording never classifies has none, so it stays unresolved and out of every total.</p></div>
+      </div>
+    </div>
+  </div>
+  {footer(8)}
+</section>''')
+
+# 9. Problem 4: unknown is never zero
+states = [
+    ("Calculated", "Every input established or confirmed by you, all conditions met. Plain ink; click for the trace."),
+    ("Conditional", "The rule applies if a named condition holds. Amber badge; a range with both bounds."),
+    ("Cannot determine", "The documents lack or contradict an input the rule needs. Grey badge; a dash, never 0."),
+    ("Not subject to deduction", "The policy's own definition keeps the item out of this rule. Neutral badge; the item stays in the bill."),
+    ("Requires insurer confirmation", "The policy is silent, or only the insurer can settle it. Blue badge; listed with what to ask."),
+    ("Review required", "The schedule contradicts the wording. No amount until a person looks."),
+]
+strs = "".join(f'<tr><td style="white-space:nowrap; font-weight:600; color:#141210;">{a}</td><td>{b}</td></tr>' for a, b in states)
+slides.append(f'''
+<section class="slide" id="p4">
+  <div class="kicker">03 · Proof · problem by problem</div>
+  <h1>Unknown is never zero</h1>
+  <div class="two" style="grid-template-columns: 520px 1fr;">
+    <div class="stack">
+      <div>{img("unc-resolve", 520)}<p class="cap">Two lines the wording never classifies, shown apart with the reason and the fix.</p></div>
+      <div>{img("unc-notmodelled", 520)}<p class="cap">Every term this version does not evaluate, where the user cannot miss it.</p></div>
+    </div>
+    <div>
+      {ptag(4, "Silence in the wording is not ₹0")}
+      <table class="states" style="margin-top:12px;">
+        <thead><tr><th>State</th><th>Meaning, and how it is shown</th></tr></thead>
+        <tbody>{strs}</tbody>
+      </table>
+      <p class="note" style="margin-top:12px;">In the code, Money has no unknown value: an unknown amount is the absence of a Money plus an uncertainty code. A total with an unknown inside reads "₹15,000 calculated, plus ₹7,500 not classified", never one figure.</p>
+    </div>
+  </div>
+  {footer(9)}
+</section>''')
+
+# 10. Problems 5–7: real wording
+slides.append(f'''
+<section class="slide" id="p5">
+  <div class="kicker">03 · Proof · problem by problem · a real wording</div>
+  <h1>Four more mechanisms, one real wording</h1>
+  <div class="two" style="grid-template-columns: 600px 1fr;">
+    <div>
+      {ptag("5 · 6 · 7", "ICU and capped limits · co-payment · an old wording")}
+      <div style="margin-top:12px;">{img("twin-nia-ame", 600)}</div>
+      <p class="cap">Arogya Sanjeevani, New India Assurance, UIN NIAHLIP20165V011920, from <a class="link" href="https://irdai.gov.in/documents/37343/931203/NIAHLIP20165V011920_2019-2020.pdf/73d50064-76a5-2d78-8299-858ce0690605?version=1.1&amp;t=1668577518571&amp;download=true">the regulator's copy</a>: ten clauses verbatim, page-cited, SHA-256 on screen. Partially encoded; the schedule is synthetic.</p>
+    </div>
+    <div class="stack">
+      <div class="tile"><div class="h3">Capped percentage limits</div><p>Room 2% of the sum insured up to ₹5,000 a day; ICU 5% up to ₹10,000. The eligible rate is the lower of the two; the trace shows both.</p></div>
+      <div class="tile sky"><div class="h3">The ICU surprise</div><p>A ₹15,000 ICU day exceeds its cap, so Note (b) applies the proportion even in the twin-sharing room: the surgeon's ₹20,000 shows in both columns. Different room and ICU ratios give bounds, not a number.</p></div>
+      <div class="tile"><div class="h3">Co-payment as a bounded range</div><p>5% of the admissible amount: ₹9,900 to ₹13,425 while implants and diagnostics are open; one figure only when everything else is settled.</p></div>
+      <div class="tile amber"><div class="h3">A 2019-20 wording against IRDAI's 2020 norms</div><p>This text reduces implants and diagnostics; IRDAI's circular of 11 June 2020 later barred that. Marked ₹0 to ₹40,000 and ₹0 to ₹4,000, requires insurer confirmation, circular named.</p></div>
+    </div>
+  </div>
+  {footer(10)}
+</section>''')
+
+# 11. Problem 8: trace
+slides.append(f'''
+<section class="slide" id="p8">
+  <div class="kicker">03 · Proof · problem by problem</div>
+  <h1>Every number opens the calculation behind it</h1>
+  <div class="two" style="grid-template-columns: 280px 400px 400px; gap: 28px;">
+    <div>
+      {ptag(8, "“How did you get this?”")}
+      <ul class="bul" style="margin-top:14px;">
+        <li style="font-size:14px;">The rule, by id and name.</li>
+        <li style="font-size:14px;">Each input with its unit and where it came from: the documents, your upload, or you.</li>
+        <li style="font-size:14px;">The source clause, quoted verbatim with document, version and page.</li>
+        <li style="font-size:14px;">The formula as text, and by id in the tests.</li>
+        <li style="font-size:14px;">The result in paise, shown in rupees, with its state.</li>
+        <li style="font-size:14px;">Anything the rule needed that is not established, by code.</li>
+      </ul>
+      <p class="note" style="margin-top:10px;">The plain-words paragraph is generated from the trace by a deterministic explainer, not by a language model. The evidence pack carries every trace in full.</p>
+    </div>
+    <div>{img("trace-top", 400)}<p class="cap">The drawer: result, state, and the explanation in plain words.</p></div>
+    <div>{img("trace-bottom", 400)}<p class="cap">Then the clause, the inputs with provenance, and the formula with the open code.</p></div>
+  </div>
+  {footer(11)}
+</section>''')
+
+# 12. Problem 9: builder
+slides.append(f'''
+<section class="slide" id="p9">
+  <div class="kicker">03 · Proof · problem by problem · the AI, in its place</div>
+  <h1>Model proposes, engine checks, you confirm</h1>
+  <div class="two" style="grid-template-columns: 540px 1fr;">
+    <div>
+      {ptag(9, "Encoding a new wording")}
+      <div style="margin-top:12px;">{img("builder-find", 540)}</div>
+      <p class="cap">Find the clause: keyword retrieval over the wording, no model, scored and page-cited. It points a reviewer at where to read.</p>
+    </div>
+    <div>
+      <div style="margin-top:30px;">{img("builder-proposal-differs", 540)}</div>
+      <p class="cap">One cached proposal for Arogya Sanjeevani. Three checks on every card: the quote verified verbatim against the clause; agreement with the human-reviewed ruleset, and here it differs; and its provenance.</p>
+      <div class="tile violet" style="margin-top:12px;"><div class="h3">The boundary</div><p>Confirmed, verified proposals become the active ruleset with the full clause as evidence; a misquote cannot be confirmed. Proposals here are cached and say so; the live adapter returns 503 unless configured and was not exercised. The model never calculates and never sees a schedule, a bill or a name.</p></div>
+    </div>
+  </div>
+  {footer(12)}
+</section>''')
+
+# 13. Problem 10: your own documents
+slides.append(f'''
+<section class="slide" id="p10">
+  <div class="kicker">03 · Proof · problem by problem</div>
+  <h1>Your own documents, and where every value came from</h1>
+  <div class="two" style="grid-template-columns: 560px 1fr;">
+    <div>
+      {ptag(10, "Real documents, no server to trust")}
+      <div style="margin-top:12px;">{img("review-nia-verification", 560)}</div>
+      <p class="cap">Input review with the real wording selected: the verification record carries the fetch date, source, page count, SHA-256, extraction method and the list of encoded clauses.</p>
+    </div>
+    <div class="stack">
+      <div class="tile"><div class="h3">Upload, in the browser only</div><p>A ruleset (JSON), a schedule (JSON) and a hospital estimate (JSON or CSV), up to 5 MB each, read with the File API and never sent anywhere. Schema-checked; a rule that misquotes its clause is refused.</p></div>
+      <div class="tile sky"><div class="h3">Provenance on every field</div><p>Every value carries a badge: demo documents, your upload, confirmed by you, or entered by you. Correct one and every trace updates. No account, key, analytics or storage.</p></div>
+      <div>{img("review-cases", 500)}<p class="cap">Three failure cases ship as demo variants: the engine refuses to overstate.</p></div>
+    </div>
+  </div>
+  {footer(13)}
+</section>''')
+
+# 14. Problem 11a: ladder and sheet
+slides.append(f'''
+<section class="slide" id="p11">
+  <div class="kicker">03 · Proof · problem by problem</div>
+  <h1>Decide the room, then know what to ask</h1>
+  <div class="two" style="grid-template-columns: 1fr 1fr; gap: 28px;">
+    <div>
+      <div class="head"><div class="icon">{ICONS["ladder"]}</div><div><div class="h2">Room ladder</div><p>Every room on one view with the deductions at each; the highest room within the limit is marked. One click plans it. The product shows; it does not recommend.</p></div></div>
+      <div style="margin-top:14px;">{img("ladder-demo", 540)}</div>
+    </div>
+    <div>
+      <div class="head"><div class="icon">{ICONS["question"]}</div><div><div class="h2">Question sheet</div><p>Every open uncertainty becomes a question for the hospital or the insurer, with its clause and the rupees at stake. Copy, print or save; take it to the billing desk.</p></div></div>
+      <div style="margin-top:14px;">{img("sheet", 540)}</div>
+    </div>
+  </div>
+  <div style="position:absolute; left:72px; bottom:52px;">{ptag(11, "Which room, and what to ask")}</div>
+  {footer(14)}
+</section>''')
+
+# 15. Problem 11b: why this changed + evidence pack
+evidence = """<span class="h"># Claim Sach evidence pack</span>
+<span class="h">## Scenario</span>
+- Room: Single private room, ₹7,500 per day, 4 days (room rent ₹30,000)
+<span class="h">## Potential deductions covered by this simulation</span>
+**₹15,000 calculated, plus ₹0 to ₹38,000 conditional, plus ₹7,500 not classified** (overall state: conditional). Not the total out-of-pocket cost.
+<span class="h">## Items</span>
+| Item | Amount | Classification | Deduction | State |
+| Surgeon fees | ₹60,000 | includedInDeduction | ₹0 to ₹20,000 | Conditional |
+| Physiotherapy | ₹6,000 | unknown | — | Cannot determine |
+<span class="c">… 8 rows omitted …</span>
+<span class="h">## Traces</span>
+<span class="h">### Room rent limit (C1.roomRentLimit)</span>
+<span class="s">&gt; Room rent and boarding charges incurred during Hospitalisation are payable up to 1% of the Sum Insured per day, as stated in the Policy Schedule.</span>
+Formula: <span class="k">`eligiblePerDay = 1% × ₹5,00,000 = ₹5,000 per day`</span>
+Result: ₹5,000 (Calculated)
+<span class="c">… every other trace follows, then the verification record and the disclaimer …</span>"""
+slides.append(f'''
+<section class="slide" id="p11b">
+  <div class="kicker">03 · Proof · problem by problem</div>
+  <h1>Why it changed, and the evidence to take with you</h1>
+  <div class="two" style="grid-template-columns: 520px 1fr;">
+    <div>
+      {img("why-deltas", 520)}
+      <div style="margin-top:12px;">{img("why-rule", 520)}</div>
+      <p class="cap">Per rule: the clause, the inputs that differ, both formulas, the affected rows.</p>
+    </div>
+    <div>
+      <div class="code">{evidence}</div>
+      <p class="cap">Verbatim lines from the exported Markdown evidence pack (JSON is one click away); "…" marks omitted lines.</p>
+    </div>
+  </div>
+  {footer(15)}
+</section>''')
+
+# 16. Technology
+slides.append(f'''
+<section class="slide" id="technology">
+  <div class="kicker">04 · Technology</div>
+  <h1>Deterministic engine, AI only with human review</h1>
+  <div style="display:grid; grid-template-columns: repeat(3, 1fr); gap: 16px; margin-top: 24px;">
+    <div class="tile"><div class="h3">Frontend</div><p>TypeScript, strict. Next.js 16 (App Router), React 19, Tailwind 4. Six screens on a tested screen model; no business logic in components.</p></div>
+    <div class="tile"><div class="h3">Rules engine</div><p>Pure TypeScript, no I/O, no model. Integer paise, exact ratios, one half-up rounding. A trace on every amount: rule, inputs, clause, formula, output, open assumptions.</p></div>
+    <div class="tile sky"><div class="h3">Two wordings</div><p>A synthetic demo policy, and Arogya Sanjeevani (New India, from irdai.gov.in): ten clauses quoted verbatim, page-cited, SHA-256 shown. Partially encoded and labelled so.</p></div>
+    <div class="tile violet"><div class="h3">AI, in its place</div><p>The Ruleset builder: a model proposes rules with quotes; the engine verifies each quote verbatim; a person confirms. Cached in this build; live adapter off. Never in the calculation path.</p></div>
+    <div class="tile"><div class="h3">Quality</div><p>Vitest, 180 tests in 18 files, written first. GitHub Actions on every pull request. Evaluation harness: six measures over two wordings, results committed and checked for staleness.</p></div>
+    <div class="tile"><div class="h3">Runs anywhere</div><p>One command, offline on a laptop; fonts bundled; Vercel-ready. Nothing the user enters leaves the browser. No key, no account, no analytics, no database.</p></div>
+  </div>
+  <div class="ink" style="margin-top:18px; padding:18px 22px;">
+    <div class="kicker" style="font-size:11px;">Data flow, all in the browser</div>
+    <p class="mono" style="font-size:12.5px; color:#F5F5F4; margin-top:8px; line-height:1.6;">fixture or upload (JSON, CSV) → ingestion: schema + verbatim evidence check → screen model → rules engine: classify → limits → proportion → co-payment → traces → six screens, room ladder, question sheet, evidence pack</p>
+    <p style="font-size:12.5px; margin-top:6px;">AI seam, off by default: public clause text → model proposals → verbatim quote check → human confirmation → ruleset. No schedule, bill or name ever leaves the browser.</p>
+  </div>
+  {footer(16)}
+</section>''')
+
+# 17. Engineering guarantees
+types_code = """<span class="k">export type</span> <span class="t">ResultState</span> =
+  | <span class="s">"calculated"</span>
+  | <span class="s">"conditional"</span>
+  | <span class="s">"unknown"</span>
+  | <span class="s">"excluded"</span>
+  | <span class="s">"requiresInsurerConfirmation"</span>
+  | <span class="s">"reviewRequired"</span>;
+
+<span class="k">export type</span> <span class="t">UncertaintyCode</span> =
+  | <span class="s">"SCHEDULE_MISSING"</span>
+  | <span class="s">"SCHEDULE_CONTRADICTS_WORDING"</span>
+  | <span class="s">"DIFFERENTIAL_BILLING_NOT_ESTABLISHED"</span>
+  | <span class="s">"ITEM_NOT_CLASSIFIED"</span>
+  | <span class="s">"WORDING_SILENT_ON_ROOM_UNAVAILABILITY"</span>
+  | <span class="s">"RULE_ABSENT"</span>
+  | <span class="s">"LIMIT_RULE_ABSENT"</span>
+  | <span class="s">"ICU_RATE_NOT_STATED"</span>
+  | <span class="s">"RATIO_AMBIGUOUS_ROOM_AND_ICU"</span>
+  | <span class="s">"WORDING_PREDATES_2020_NORMS"</span>
+  | <span class="s">"POLICY_CAVEAT"</span>;
+
+<span class="c">// src/engine/types.ts, verbatim. Every uncertainty the</span>
+<span class="c">// engine can raise is a named code; every amount has a state.</span>"""
+slides.append(f'''
+<section class="slide" id="guarantees">
+  <div class="kicker">04 · Technology · the guarantees, as they stand in the code</div>
+  <h1>Six states, eleven named uncertainties, no silent zeros</h1>
+  <div class="two" style="grid-template-columns: 520px 1fr; gap: 28px; margin-top: 20px;">
+    <div class="code">{types_code}</div>
+    <div style="display:grid; grid-template-columns: 1fr 1fr; gap: 12px;">
+      <div class="tile"><div class="h3">Integer paise</div><p>Money is a branded integer of paise. mulRatio multiplies with BigInt and rounds half up once per operation; nothing is a float.</p></div>
+      <div class="tile"><div class="h3">Exact ratios</div><p>Eligible ÷ actual stays a reduced fraction (gcd), so 5,000 ÷ 7,500 is 2/3, not 0.6667.</p></div>
+      <div class="tile"><div class="h3">No universal policy</div><p>Each wording is its own ruleset with its own definitions. No rule is hard-coded; no single ratio is ever applied to a whole bill.</p></div>
+      <div class="tile"><div class="h3">Unknown has no Money</div><p>An unknown amount is the absence of a Money plus an uncertainty code. It cannot be added, so it cannot be totalled by accident.</p></div>
+      <div class="tile"><div class="h3">Traces are validated</div><p>validateTrace checks each trace against the verbatim clauses and schedules; a tampered or misquoted trace fails. Uploaded rulesets get the same check.</p></div>
+      <div class="tile green"><div class="h3">Tests first</div><p>180 Vitest tests in 18 files, written before the code. CI runs lint, typecheck, tests, build and the evaluation harness on every pull request, and fails if the committed results are stale.</p></div>
+    </div>
+  </div>
+  {footer(17)}
+</section>''')
+
+# 18. USP
+slides.append(f'''
+<section class="slide" id="usp">
+  <div class="kicker">05 · USP</div>
+  <h1>Item-level, clause-cited, honest about unknowns</h1>
+  <div style="display:grid; grid-template-columns: 1fr 1fr; gap: 18px; margin-top: 26px;">
+    <div class="tile" style="display:grid; grid-template-columns: 30px 1fr; gap: 14px;"><div class="dot">1</div><div><div class="h3">Every number is clickable</div><p>Clause and page, inputs with where they came from, the formula, the operation. Tampered traces fail validation.</p></div></div>
+    <div class="tile" style="display:grid; grid-template-columns: 30px 1fr; gap: 14px;"><div class="dot">2</div><div><div class="h3">Unknown is never zero</div><p>Items the wording does not classify stay out of every total. A conditional amount shows both bounds and the condition.</p></div></div>
+    <div class="tile" style="display:grid; grid-template-columns: 30px 1fr; gap: 14px;"><div class="dot">3</div><div><div class="h3">Change your room, see the difference</div><p>Two rooms side by side, the rule behind every changed row; the ladder and the question sheet turn it into a decision and a call script.</p></div></div>
+    <div class="tile" style="display:grid; grid-template-columns: 30px 1fr; gap: 14px;"><div class="dot">4</div><div><div class="h3">Proven on a real wording, honestly</div><p>Arogya Sanjeevani, ten clauses verbatim with a checksum; where the 2019-20 text conflicts with IRDAI's 2020 norms, the engine says so.</p></div></div>
+  </div>
+  <div style="display:grid; grid-template-columns: 1fr 1fr; gap: 18px; margin-top: 18px;">
+    <div class="tile green"><div class="h3">What we claim</div><p>Claim Sach turns a policy wording into a verifiable hospital-bill simulation: change the room, inspect every modelled deduction, and see what the documents cannot determine.</p></div>
+    <div class="tile"><div class="h3">What we do not claim</div><p>Not the first to read clauses; not a payout guarantee; no accuracy figure beyond the measured ones. A bounded review of nine public sources found no tool doing this; we claim we looked, not that nobody does.</p></div>
+  </div>
+  {footer(18)}
+</section>''')
+
+# 19. Impact
+slides.append(f'''
+<section class="slide" id="impact">
+  <div class="kicker">06 · Impact &amp; benefits</div>
+  <h1>The room decision, made before admission</h1>
+  <div class="two" style="grid-template-columns: 500px 1fr; margin-top: 22px;">
+    <div class="stack">
+      <div class="tile sky"><div class="h3">For the policyholder</div><p>The room decision with its deductions visible before admission, not after. Questions for the hospital and the insurer written out: what to ask, and what it is worth.</p></div>
+      <div class="tile sky"><div class="h3">For a broker's claim-assistance agent</div><p>The clause on screen during the call. The uncertainty list is the call script; the evidence pack is the written answer.</p></div>
+      <div>{img("twin-confirmed-totals", 500)}<p class="cap">One row decides it: ₹5,000 against ₹53,000 of calculated deductions once billing practice is confirmed.</p></div>
+    </div>
+    <div>
+      <span class="chip green">Measured, not claimed</span>
+      <table style="margin-top:10px;">
+        <thead><tr><th>Measure</th><th style="text-align:right;">Synthetic</th><th style="text-align:right;">Real wording</th></tr></thead>
+        <tbody>
+          <tr><td>Clause retrieval, top-1</td><td class="r">11 of 12</td><td class="r">10 of 12</td></tr>
+          <tr><td>Rule extraction, field-level</td><td class="r">10 of 10</td><td class="r">10 of 12</td></tr>
+          <tr><td>Calculations, exact paise</td><td class="r">9 of 9 · 46 amounts</td><td class="r">3 of 3 · 21 amounts</td></tr>
+          <tr><td>Uncertainty and refusal</td><td class="r">6 of 6</td><td class="r">3 of 3</td></tr>
+          <tr><td>Proposal quotes verbatim (cached)</td><td class="r">n/a</td><td class="r">6 of 6</td></tr>
+          <tr><td>Proposals agree with reviewer (cached)</td><td class="r">n/a</td><td class="r">11 of 13</td></tr>
+        </tbody>
+      </table>
+      <p class="note" style="margin-top:10px;">Measured on the synthetic wording and on ten encoded clauses of one real wording; proposals are cached, not a live run. No accuracy figure appears in the product. Every figure is a potential deduction covered by the simulation, never total out-of-pocket cost.</p>
+    </div>
+  </div>
+  {footer(19)}
+</section>''')
+
+# 20. Business model
+slides.append(f'''
+<section class="slide" id="business">
+  <div class="kicker">07 · Business model</div>
+  <h1>Where it fits Paytm, and what must be tested</h1>
+  <div style="display:grid; grid-template-columns: 1fr 1fr; gap: 40px; margin-top: 24px; align-items: start;">
+    <div>
+      <span class="chip green">Verified facts</span>
+      <ul class="bul" style="margin-top:14px;">
+        <li style="font-size:14.5px;">Paytm Insurance Broking Pvt Ltd is a Direct (Life &amp; General) broker: IRDAI Reg. No. 700, renewed 9 Feb 2026, valid to 16 Feb 2029.</li>
+        <li style="font-size:14.5px;">It distributes car, two-wheeler, health, life and term policies from 18+ insurers, including Niva Bupa and Aditya Birla Health. It does not underwrite.</li>
+        <li style="font-size:14.5px;">It already offers claim assistance by phone. Arogya Sanjeevani is IRDAI's standard product on one wording; one verified encoding serves every insurer that sells it.</li>
+        <li style="font-size:14.5px;">FY25 turnover ₹37.1 crore, loss ₹13.2 crore (Form AOC-1), inside a ₹2,593 crore financial-services line in FY26. Insurance is a small line for Paytm today; clarity is a wedge worth testing.</li>
+      </ul>
+    </div>
+    <div>
+      <span class="chip amber">Hypotheses, each with its test</span>
+      <table style="margin-top:12px;">
+        <thead><tr><th>Hypothesis</th><th>Test</th></tr></thead>
+        <tbody>
+          <tr><td>Fewer claim-time support contacts and disputes</td><td>Four-week pilot at one claim-assistance desk, against a matched cohort</td></tr>
+          <tr><td>More eligible-room choices when the consequence is visible</td><td>Room-change rate in the simulator, then claims data</td></tr>
+          <tr><td>Panel insurers co-fund a coverage-clarity tool</td><td>Three conversations; one signed pilot letter is the pass</td></tr>
+          <tr><td>A coverage check lifts conversion or renewal on the policy page</td><td>A/B test, if Paytm chooses to run one</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+  <div style="display:grid; grid-template-columns: repeat(3, 1fr); gap: 16px; margin-top: 22px;">
+    <div class="tile" style="padding:16px 18px;"><span class="num" style="color:#B45309;">Revenue option · untested</span><div class="h3" style="margin-top:6px;">Broker-side feature</div><p>Inside the health-policy journey and claim assistance; the return is retention and fewer disputes.</p></div>
+    <div class="tile" style="padding:16px 18px;"><span class="num" style="color:#B45309;">Revenue option · untested</span><div class="h3" style="margin-top:6px;">Insurer-paid integration</div><p>Panel insurers co-fund coverage clarity for the policies they sell; a signed pilot letter is the pass.</p></div>
+    <div class="tile" style="padding:16px 18px;"><span class="num" style="color:#B45309;">Revenue option · untested</span><div class="h3" style="margin-top:6px;">Premium claim-assistance tier</div><p>The question sheet and the evidence pack as part of a paid assistance service.</p></div>
+  </div>
+  <p class="note" style="margin-top:14px;">Which option, if any, depends on the tests above. No Paytm integration is claimed or built. Bima Sugam is not live; it belongs in the future tense.</p>
+  {footer(20)}
+</section>''')
+
+# 21. Closing
+slides.append(f'''
+<section class="slide dark" id="closing">
+  <div class="kicker">Claim Sach · Coverage Twin</div>
+  <div style="display:grid; grid-template-columns: 1fr 560px; gap: 56px; margin-top: 56px; align-items: center;">
+    <div>
+      <h1 style="font-size:58px;">Built, tested, runs with the Wi-Fi off</h1>
+      <p style="font-size:18px; margin-top:22px; max-width:560px;">Shortlist us and we bring a laptop. Three minutes: change the room, open a number, watch the engine refuse to guess on a real wording.</p>
+      <ul class="bul" style="margin-top:26px;">
+        <li>A second real wording through the builder, with the live adapter on.</li>
+        <li>Independent review of the evaluation fixtures.</li>
+        <li>A four-week pilot at a broker's claim-assistance desk.</li>
+      </ul>
+      <p style="font-size:13.5px; margin-top:30px; color:#B8B0A6;">Code, tests and documents: <a class="link" href="https://github.com/Pushkarmondal/paytm-hackathon">github.com/Pushkarmondal/paytm-hackathon</a></p>
+    </div>
+    <div>
+      {img("headline-nia", 560, bar=True)}
+      <p class="cap">The same engine on the real wording: ₹55,000 calculated, a co-payment and two caveated items as ranges, two lines it will not classify.</p>
+    </div>
+  </div>
+  <div class="footer"><span><a href="#contents">Contents</a></span><span>Pushkar Mondal · Founding Engineer, Xeliport · October 2026</span></div>
+</section>''')
+
+html = f'''<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="author" content="Pushkar Mondal">
+<title>Claim Sach: Coverage Twin</title>
+<style>{CSS}</style>
+</head>
+<body>
+{"".join(slides)}
+</body>
+</html>
+'''
+open(out_path, "w", encoding="utf-8").write(html)
+print(f"wrote {out_path}: {len(slides)} slides")
