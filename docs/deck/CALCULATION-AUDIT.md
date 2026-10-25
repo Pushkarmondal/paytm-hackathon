@@ -41,10 +41,12 @@ The open questions in a scenario each have a finite set of outcomes: differentia
 
 | Step | Arithmetic | Result |
 |---|---|---|
+| The bill, ten non-room lines | ICU 15,000 + nursing 4,000 + surgeon 60,000 + anaesthetist 15,000 + operation theatre 35,000 + implant 1,20,000 + pharmacy and consumables 25,000 + diagnostics 12,000 + physiotherapy 6,000 + hospital admin 1,500 | ₹2,93,500 |
+| Scenario total | ₹30,000 room rent (₹7,500 × 4) + ₹2,93,500 | ₹3,23,500 |
 | Applicable room limit, 4.1(a) | min(2% × ₹5,00,000 = ₹10,000, ₹5,000) | ₹5,000 a day |
 | Room excess | (₹7,500 − ₹5,000) × 4 days | **₹10,000** |
 | Applicable ICU limit, 4.1(b) | min(5% × ₹5,00,000 = ₹25,000, ₹10,000) | ₹10,000 a day |
-| ICU excess | (₹15,000 − ₹10,000) × 1 day | **₹5,000** |
+| ICU, 1 day at ₹15,000: excess | (₹15,000 − ₹10,000) × 1 day. The ICU line is a bill item in its own right, governed by the ICU limit; it is never in the Note (b) class, which covers the "other expenses". Its only deduction is this excess | **₹5,000** |
 | Ratio, Note (b) | room 5,000 ÷ 7,500 = 2/3; ICU 10,000 ÷ 15,000 = 2/3; same, so 2/3 applies; deduction = item × (1 − 2/3) = item ÷ 3 | 2/3 |
 | Nursing | ₹4,000 ÷ 3 | ₹1,333.33 |
 | Surgeon | ₹60,000 ÷ 3 | ₹20,000.00 |
@@ -56,7 +58,6 @@ The open questions in a scenario each have a finite set of outcomes: differentia
 | Pharmacy and consumables | not classified | — (₹25,000 shown apart) |
 | Hospital admin | not classified | — (₹1,500 shown apart) |
 | **Calculated deductions** | 10,000 + 5,000 + 1,333.33 + 20,000 + 5,000 + 11,666.67 + 2,000 | **₹55,000.00** |
-| Scenario total | ₹30,000 room rent + ₹2,93,500 | ₹3,23,500 |
 | **Not classified** | 25,000 + 1,500 | **₹26,500** (2 items) |
 
 Open questions: the caveat (reduction applied or not: ₹44,000 or ₹0) and the admissibility of the two unclassified items (₹26,500 in all). Four joint outcomes:

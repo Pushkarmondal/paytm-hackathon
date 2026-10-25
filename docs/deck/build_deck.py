@@ -78,7 +78,7 @@ CSS = r"""
   table.matrix td.w { color: #141210; font-weight: 500; }
   table.matrix td.s { color: #8A8178; font-size: 11.5px; white-space: nowrap; }
   table.states td { font-size: 12px; padding: 7px 9px; line-height: 1.35; }
-  table.audit td { font-size: 12px; padding: 5px 9px; line-height: 1.3; }
+  table.audit td { font-size: 12px; padding: 4px 9px; line-height: 1.28; }
   table.audit td.f { font-family: "Geist Mono", Menlo, monospace; font-size: 11px; color: #4A443E; }
   table.audit td.r { font-weight: 600; color: #141210; text-align: left; white-space: normal; }
   .note { font-size: 12.5px; color: #8A8178; line-height: 1.45; }
@@ -708,10 +708,11 @@ B["guarantees"] = lambda: f'''
 </section>'''
 
 AUDIT_ROWS = [
+    ("The bill: ten non-room lines", "", "ICU 15,000 + nursing 4,000 + surgeon 60,000 + anaesthetist 15,000 + OT 35,000 + implant 1,20,000 + pharmacy 25,000 + diagnostics 12,000 + physio 6,000 + admin 1,500", "₹2,93,500 · + room ₹30,000 = ₹3,23,500"),
     ("Eligible room rate", "4.1(a)", "min(2% × ₹5,00,000 = ₹10,000, ₹5,000)", "₹5,000 a day"),
     ("Room excess, single private", "4.1(a)", "(₹7,500 − ₹5,000) × 4 days", "₹10,000"),
     ("Eligible ICU rate", "4.1(b)", "min(5% × ₹5,00,000 = ₹25,000, ₹10,000)", "₹10,000 a day"),
-    ("ICU excess", "4.1(b)", "(₹15,000 − ₹10,000) × 1 day", "₹5,000"),
+    ("ICU, 1 day at ₹15,000: excess", "4.1(b)", "(₹15,000 − ₹10,000) × 1 day; the ICU line is governed by its own limit and is never in the Note (b) class", "₹5,000"),
     ("Ratio", "Note (b)", "room 5,000 ÷ 7,500 = 2/3; ICU 10,000 ÷ 15,000 = 2/3; same, applies", "deduction = item ÷ 3"),
     ("Nursing · surgeon · anaesthetist · OT · physio", "Note (b)", "4,000 ÷ 3 · 60,000 ÷ 3 · 15,000 ÷ 3 · 35,000 ÷ 3 · 6,000 ÷ 3", "1,333.33 · 20,000 · 5,000 · 11,666.67 · 2,000"),
     ("Implant · diagnostics (caveat)", "Note (b)", "₹0 to 1,20,000 ÷ 3 · ₹0 to 12,000 ÷ 3", "0 to 40,000 · 0 to 4,000"),
@@ -734,7 +735,7 @@ def build_audit():
     <thead><tr><th style="width:250px;">Step</th><th style="width:70px;">Clause</th><th>Arithmetic</th><th style="width:230px;">Result</th></tr></thead>
     <tbody>{trs}</tbody>
   </table>
-  <p class="note" style="margin-top:10px;">Sum insured ₹5,00,000 (synthetic schedule); four room days; non-room items ₹2,93,500. Conditional bounds are taken over every jointly possible outcome of the open questions (sixteen for the deluxe room), so no bound pairs a maximum deduction with a co-payment computed as if it had not happened. Integer paise, reduced fractions, one half-up rounding per multiplication; the compact display drops paise. The engine, run on 25 October 2026, returns the same figures; the harness checks 29 hand-computed amounts on this wording. Full working: docs/deck/CALCULATION-AUDIT.md; re-run with scripts/deck-figures.ts.</p>
+  <p class="note" style="margin-top:10px;">Sum insured ₹5,00,000 (synthetic schedule); four room days. Conditional bounds are taken over every jointly possible outcome (sixteen for the deluxe room), so no bound pairs a maximum deduction with a co-payment computed as if it had not happened. Integer paise, reduced fractions, one half-up rounding; the display drops paise. The engine run on 25 October 2026 matches; the harness checks 29 amounts. Full working: docs/deck/CALCULATION-AUDIT.md.</p>
   {footer("audit")}
 </section>'''
 
